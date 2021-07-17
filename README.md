@@ -12,7 +12,7 @@ The language only supports integers, as well as arrays of integers.
 ### Variables
 
 Since there are only integer variables in IPL, they need not be declared before their use and each uninitialized variable is
-implicitly initialized to 0 (the first time it's used). Additionally, variable names can start with a letter (upper or lower
+implicitly initialized to 0 (the first time it's used). Variable names can start with a letter (upper or lower
 case), and can be followed by either a letter, a digit or an underscore (in regex terms: [a-zA-Z][a-zA-Z0-9_]*).
 
 ### Constants
