@@ -113,7 +113,7 @@ The following assumptions have been made:
 - The indentation of a command is determined by the number of tabs at the beginning of each line.
 - A variable name cannot contain more than 100 characters.
 
-## To Do List
+## To-Do List
 
 - Add support for arrays (they have been omitted at this stage).
 - Maybe use a map for fast lookup for keywords (see src/scanner.c)
