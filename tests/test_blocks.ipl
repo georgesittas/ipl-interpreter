@@ -1,0 +1,26 @@
+if a != 1
+	writeln a
+	while b < 5
+		b = b + 1
+		c = b % 2
+		if c == 0
+			while c < b
+				c = c + 3
+				writeln c
+				if c >= b
+					writeln a
+		else
+			write c
+			writeln c
+else
+	b = 20
+	random a
+	if a == 0
+		while b > 0
+			c = b - a
+			a = a * 2
+			d = c % a
+			b = b - 1
+			if d == 1
+				while d < 10
+					writeln div
