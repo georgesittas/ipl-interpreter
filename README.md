@@ -123,5 +123,5 @@ The following assumptions have been made:
 ## To-Do List
 
 - Add support for arrays (they have been omitted at this stage).
-- Maybe use a map for fast lookup for keywords (see src/scanner.c)
+- Maybe use a map for faster keyword lookup (see src/scanner.c).
 - Check for possible optimizations.
