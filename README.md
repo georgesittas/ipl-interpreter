@@ -114,7 +114,9 @@ make clean // clean the directory of object files & executable
 
 ## Extra Notes
 
-The following assumptions have been made:
+The interpreter hasn't been thoroughly tested, so it's very likely that it contains bugs. Feel free to create an issue
+if you find an interesting case or even contribute to the project by creating a pull request. The following assumptions
+have been made:
 
 - A command can contain an arbitrary number of whitespace (spaces or tabs) between variables, operators, etc.
 - The indentation of a command is determined by the number of tabs at the beginning of each line.
