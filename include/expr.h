@@ -21,6 +21,12 @@ typedef struct var {
 	int value;
 } Var;
 
+typedef struct array {
+	char* id
+	int size;
+	int* values;
+} Array;
+
 typedef struct binary {
 	TokenType type;
 	Expr* left;
@@ -31,12 +37,14 @@ typedef struct binary {
 Expr* create_expr(ExprType type, void* expr);
 Literal* create_literal(int value);
 Var* create_var(char* id, int value);
+Array* create_array(char* id, int size);
 Binary* create_binary(TokenType type, Expr* left, Expr* right);
 
 // Destructors for the above types
 void destroy_expr(void* expr);
 void destroy_literal(void* expr);
 void destroy_var(void* expr);
+void destroy_array(void* expr);
 void destroy_binary(void* expr);
 
 #endif // EXPR_H
