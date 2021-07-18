@@ -125,4 +125,4 @@ have been made:
 ## To-Do List
 
 - [ ] Add support for arrays (they have been omitted at this stage).
-- [ ] Use a map for keyword lookup? (see src/scanner.c).
+- [ ] Use a map for (faster?) keyword lookup (see src/scanner.c).
