@@ -1,7 +1,7 @@
 # IPL Interpreter
 
 For this project, I've implemented an interpreter for
-[IPL (Introduction to Programming Language)](https://github.com/GeorgeSittas/ipl-interpreter/blob/main/ipl_specification.pdf),
+[IPL (Introduction to Programming Language)](https://github.com/GeorgeSittas/ipl-interpreter/blob/main/specification.pdf),
 using some of the techniques I learned from the book [Crafting Interpreters](https://craftinginterpreters.com/). The language
 is briefly described as follows:
 
