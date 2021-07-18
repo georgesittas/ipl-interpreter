@@ -105,6 +105,13 @@ as in `free <name>`, where `<name>` is the identifier of the array-to-be-dealloc
 just like in C: `<name>[<expr>]`, where `<expr>` can either be a constant, a variable or an array element (again, an
 out-of-bounds index will raise a runtime error).
 
+## Compilation
+
+```Bash
+make       // produces the executable "ipli"
+make clean // clean the directory of object files & executable
+```
+
 ## Extra Notes
 
 The following assumptions have been made:
