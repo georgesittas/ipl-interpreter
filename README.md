@@ -126,3 +126,4 @@ have been made:
 
 - [ ] Add support for arrays (they have been omitted at this stage).
 - [x] Use a map for (faster?) keyword lookup (see src/scanner.c).
+- [ ] Create a test-suite for the interpreter & automate testing.
