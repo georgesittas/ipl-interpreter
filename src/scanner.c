@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#include "map.h"
 #include "vector.h"
 
 #include "error.h"
@@ -11,6 +12,8 @@
 #include "scanner.h"
 
 // Helper functions used by the scanner (no reason to expose them)
+static int* create_int(int value);
+static void install_keywords(void);
 static int identifier_token(char* lexeme);
 static void destroy_token(void* item);
 static void scan_token(void);
@@ -28,6 +31,7 @@ static bool reached_eof(void);
 static Vector tokens;
 
 static FILE* stream;
+static Map keywords; // Implements the mapping keyword -> type
 
 static int line = 1;
 static int lexeme_pos = 0;
@@ -35,32 +39,34 @@ static char lexeme[MAX_LEXEME+1];
 
 static bool computing_indentation = true;
 
-// Careful: the order of the keywords must be the same as in token.h
-static char* keywords[] = {
-	"read",
-	"write",
-	"writeln",
-	"if",
-	"else",
-	"while",
-	"random",
-	"argument",
-	"size",
-	"break",
-	"continue"
-};
+static int* create_int(int value) {
+	int* new_int = malloc(sizeof(int));
+	assert(new_int != NULL);
+	*new_int = value;
+	return new_int;
+}
+
+static void install_keywords(void) {
+	keywords = map_create(NULL, NULL, free, NULL);
+
+	map_put(keywords, "read", create_int(READ));
+	map_put(keywords, "write", create_int(WRITE));
+	map_put(keywords, "writeln", create_int(WRITELN));
+	map_put(keywords, "if", create_int(IF));
+	map_put(keywords, "else", create_int(ELSE));
+	map_put(keywords, "while", create_int(WHILE));
+	map_put(keywords, "random", create_int(RANDOM));
+	map_put(keywords, "argument", create_int(ARGUMENT));
+	map_put(keywords, "size", create_int(SIZE));
+	map_put(keywords, "break", create_int(BREAK));
+	map_put(keywords, "continue", create_int(CONTINUE));
+	map_put(keywords, "new", create_int(NEW));
+	map_put(keywords, "free", create_int(FREE));
+}
 
 static int identifier_token(char* lexeme) {
-	static int n_keywords = sizeof(keywords) / sizeof(keywords[0]);
-
-	// Prioritize keywords (eg. "if" will not be regarded as a variable name)
-	for (int i = 0; i < n_keywords; i++) {
-		if (strcmp(lexeme, keywords[i]) == 0) {
-			return READ + i; // Assumes keyword order is consistent with token.h
-		}
-	}
-
-	return IDENTIFIER;
+	int* keyword_type = map_get(keywords, lexeme);
+	return keyword_type == NULL ? IDENTIFIER : *keyword_type;
 }
 
 static void destroy_token(void* item) {
@@ -73,12 +79,15 @@ Vector scan_tokens(FILE* fp) {
 	stream = fp;
 	tokens = vector_create(destroy_token);
 
+	install_keywords();
 	while (!reached_eof()) {
 		lexeme_pos = 0;
 		scan_token();
 	}
 
 	add_token(ENDOFFILE, "<EOF>", 0);
+
+	map_destroy(keywords);
 	return tokens;
 }
 
@@ -91,6 +100,8 @@ static void scan_token(void) {
 		case '*': add_token(STAR, "*", 0); break;
 		case '/': add_token(SLASH, "/", 0); break;
 		case '%': add_token(MODULO, "%", 0); break;
+		case '[': add_token(LSBRACE, "[", 0); break;
+		case ']': add_token(RSBRACE, "]", 0); break;
 
 		case '!':
 			consume_symbol('=');
