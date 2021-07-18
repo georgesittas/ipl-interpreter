@@ -39,7 +39,7 @@ static char** args;
 static enum { STOP, REPEAT, NORMAL } loop_state = NORMAL;
 static bool inside_while_block = false;
 
-void execute(Vector stmts, int argc, char **argv) {
+void execute(Vector stmts, int argc, char** argv) {
 	static bool initialized = false;
 
 	if (!initialized) {
