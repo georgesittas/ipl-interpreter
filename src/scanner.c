@@ -198,7 +198,7 @@ static void consume_symbol(int symbol) {
 	int ch = fgetc(stream);
 
 	if (ch != symbol) {
-		fprintf(stderr, "[line %d] Unexpected character: %c\n", line, ch);
+		fprintf(stderr, "Lexical Error: unexpected character at line %d - %c\n", line, ch);
 		exit(EBAD_SYMBOL);
 	}
 }
