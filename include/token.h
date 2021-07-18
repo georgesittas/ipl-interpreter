@@ -16,9 +16,10 @@ typedef enum token_type {
 
 	// Keywords
 	READ, WRITE, WRITELN, IF, ELSE, WHILE, RANDOM, ARGUMENT, SIZE, BREAK, CONTINUE,
+	NEW, FREE,
 
 	// Special
-	TAB, NEWLINE, ENDOFFILE
+	LSBRACE, RSBRACE, TAB, NEWLINE, ENDOFFILE
 } TokenType;
 
 typedef struct token {
