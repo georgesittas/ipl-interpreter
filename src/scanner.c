@@ -151,7 +151,7 @@ static void scan_token(void) {
 			} else if (is_digit(symbol)) {
 				number();
 			} else if (symbol != EOF) {
-				fprintf(stderr, "[line %d] Unexpected character: %c\n", line, symbol);
+				fprintf(stderr, "Lexical Error: unexpected character at line %d - %c\n", line, symbol);
 				exit(EBAD_SYMBOL);
 			}
 			break;
