@@ -35,6 +35,19 @@ Var* create_var(char* id, int value) {
 	return new_var;
 }
 
+Array* create_array(char* id, int size) {
+	Array* new_array = malloc(sizeof(Array));
+	assert(new_array != NULL);
+
+	new_array->id = strdup(id);
+	new_array->size = size;
+
+	new_array->values = calloc(size, sizeof(int));
+	assert(new_array->values != NULL);
+
+	return new_array;
+}
+
 Binary* create_binary(TokenType type, Expr* left, Expr* right) {
 	Binary* new_binary = malloc(sizeof(Binary));
 	assert(new_binary != NULL);
@@ -74,6 +87,15 @@ void destroy_var(void* expr) {
 
 	Var* exprr = (Var*) expr;
 	free(exprr->id);
+	free(exprr);
+}
+
+void destroy_array(void* expr) {
+	assert(expr != NULL);
+
+	Array* exprr = (Array*) expr;
+	free(exprr->id);
+	free(exprr->values);
 	free(exprr);
 }
 
