@@ -11,7 +11,7 @@ The language only supports integers, as well as arrays of integers.
 
 ### Variables
 
-Since there are only integer variables in IPL, they need not be declared before their use, and each uninitialized variable is
+Since there are only integer variables in IPL, they don't need to be declared before their use, and each uninitialized variable is
 implicitly initialized to 0 on its first use. Additionally, variable names can't consist of more than 100 characters and they must start
 with a letter (upper or lower case), (possibly) followed by a string that contains letters, digits and underscores (in regex terms:
 `Identifier := [a-zA-Z][a-zA-Z0-9_]*`).
