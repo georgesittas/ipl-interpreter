@@ -145,4 +145,4 @@ have been made:
 ## To-Do List
 
 - [ ] Create a test-suite for the interpreter & automate testing.
-- [ ] Add support for the verbose mode
+- [ ] Add support for a verbose execution mode.
