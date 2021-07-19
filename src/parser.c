@@ -11,25 +11,28 @@
 #include "token.h"
 #include "parser.h"
 
-// Helper functions used by the scanner (no reason to expose them)
+// Helper functions used by the parser (no reason to expose them)
 static void parse_stmt(void);
-static void read_stmt(int line);
-static void assignment_stmt(int line);
-static void write_stmt(int line);
-static void writeln_stmt(int line);
-static void while_stmt(int line, int indent);
-static void if_else_stmt(int line, int indent);
-static Vector block_stmt(int line, int indent);
-static void random_stmt(int line);
-static void arg_size_stmt(int line);
-static void arg_stmt(int line);
-static void break_stmt(int line);
-static void continue_stmt(int line);
-static Expr* expr(void);
-static void var_or_literal(Token* token, void** expr, ExprType* type);
-static Token* advance(void);
-static Token* peek(void);
-static Token* previous(void);
+static void parse_read_stmt(int line);
+static void parse_assignment_stmt(int line);
+static void parse_write_stmt(int line);
+static void parse_writeln_stmt(int line);
+static void parse_while_stmt(int line, int indent);
+static void parse_if_else_stmt(int line, int indent);
+static Vector parse_block_stmt(int line, int indent);
+static void parse_random_stmt(int line);
+static void parse_arg_size_stmt(int line);
+static void parse_arg_stmt(int line);
+static void parse_break_stmt(int line);
+static void parse_continue_stmt(int line);
+static void parse_new_stmt(int line);
+static void parse_free_stmt(int line);
+static Expr* parse_expr(void);
+static Expr* parse_rvalue(void);
+static Expr* parse_lvalue(void);
+static Token* advance_token(void);
+static Token* peek_token(void);
+static Token* previous_token(void);
 static Token* consume_token(TokenType type, bool endable);
 static bool match_token(TokenType type);
 static int compute_indentation(void);
@@ -64,7 +67,7 @@ static void parse_stmt(void) {
 	int indent = compute_indentation();
 	if (indent != curr_indent) {
 		if (indent > curr_indent) {
-			syntax_error("invalid indentation", previous()->line, EBAD_INDENT);
+			syntax_error("invalid indentation", previous_token()->line, EBAD_INDENT);
 		}
 
 		// Rewind the stream index to parse the current statement in the proper context
@@ -74,23 +77,25 @@ static void parse_stmt(void) {
 		return; // End of block
 	}
 
-	Token* token = advance();
+	Token* token = advance_token();
 	switch (token->type) {
-		case READ: read_stmt(token->line); break;
-		case IDENTIFIER: assignment_stmt(token->line); break;
-		case WRITE: write_stmt(token->line); break;
-		case WRITELN: writeln_stmt(token->line); break;
-		case WHILE: while_stmt(token->line, indent); break;
-		case IF: if_else_stmt(token->line, indent); break;
-		case RANDOM: random_stmt(token->line); break;
-		case BREAK: break_stmt(token->line); break;
-		case CONTINUE: continue_stmt(token->line); break;
+		case READ: parse_read_stmt(token->line); break;
+		case IDENTIFIER: parse_assignment_stmt(token->line); break;
+		case WRITE: parse_write_stmt(token->line); break;
+		case WRITELN: parse_writeln_stmt(token->line); break;
+		case WHILE: parse_while_stmt(token->line, indent); break;
+		case IF: parse_if_else_stmt(token->line, indent); break;
+		case RANDOM: parse_random_stmt(token->line); break;
+		case BREAK: parse_break_stmt(token->line); break;
+		case CONTINUE: parse_continue_stmt(token->line); break;
+		case NEW: parse_new_stmt(token->line); break;
+		case FREE: parse_free_stmt(token->line); break;
 
 		case ARGUMENT:
 			if (match_token(SIZE)) {
-				arg_size_stmt(token->line);
+				parse_arg_size_stmt(token->line);
 			} else {
-				arg_stmt(token->line);
+				parse_arg_stmt(token->line);
 			}
 			break;
 
@@ -103,59 +108,62 @@ static void parse_stmt(void) {
 	}
 }
 
-static void read_stmt(int line) {
-	Token* var_token = consume_token(IDENTIFIER, false);
+static void parse_read_stmt(int line) {
+	Expr* lvalue = parse_lvalue();
 	consume_token(NEWLINE, true);
 
-	ReadStmt* readstmt = create_readstmt(create_var(var_token->lexeme, 0));
-	vector_add(stmts, create_stmt(line, READ_STMT, readstmt));
+	ReadStmt* read_stmt = create_read_stmt(lvalue->type == ARRAY, lvalue->expr);
+	vector_add(stmts, create_stmt(line, READ_STMT, read_stmt));
 }
 
-static void assignment_stmt(int line) {
-	Token* lvalue_token = previous();
+static void parse_assignment_stmt(int line) {
+	curr_token--; // Unread one token so we can begin parsing an lvalue
+
+	Expr* lvalue = parse_lvalue();
 	consume_token(EQUAL, false);
-	Expr* rhs_expr = expr();
+	Expr* rhs_expr = parse_expr();
 
 	if (rhs_expr->type == BINARY &&
-		  !is_arithm_operator(((Binary*) rhs_expr->expr)->type) ) {
+		  !is_arithm_operator(((Binary*) rhs_expr->expr)->type)) {
 		syntax_error("invalid operator in binary expression", line, EBAD_OP);
 	}
 
-	AssignmentStmt* assignmentstmt = create_assignmentstmt(
-		create_var(lvalue_token->lexeme, 0),
-		rhs_expr
+	consume_token(NEWLINE, true);
+	AssignmentStmt* assignment_stmt = create_assignment_stmt(
+		lvalue->type == ARRAY, lvalue->expr, rhs_expr
 	);
 
-	consume_token(NEWLINE, true);
-	vector_add(stmts, create_stmt(line, ASSIGNMENT_STMT, assignmentstmt));
+	vector_add(stmts, create_stmt(line, ASSIGNMENT_STMT, assignment_stmt));
 }
 
-static void write_stmt(int line) {
-	Expr* write_expr = expr();
-	if (write_expr->type == BINARY) {
-		syntax_error("invalid expression in write statement", line, EBAD_EXPR);
+static void parse_write_stmt(int line) {
+	if (peek_token()->type == NEWLINE) {
+		consume_token(NEWLINE, true);
+		vector_add(stmts, create_stmt(line, WRITE_STMT, create_write_stmt(NULL)));
+	} else {
+		Expr* write_expr = parse_rvalue();
+		consume_token(NEWLINE, true);
+
+		WriteStmt* write_stmt = create_write_stmt(write_expr);
+		vector_add(stmts, create_stmt(line, WRITE_STMT, write_stmt));
 	}
-
-	consume_token(NEWLINE, true);
-
-	WriteStmt* writestmt = create_writestmt(write_expr);
-	vector_add(stmts, create_stmt(line, WRITE_STMT, writestmt));
 }
 
-static void writeln_stmt(int line) {
-	Expr* writeln_expr = expr();
-	if (writeln_expr->type == BINARY) {
-		syntax_error("invalid expression in writeln statement", line, EBAD_EXPR);
+static void parse_writeln_stmt(int line) {
+	if (peek_token()->type == NEWLINE) {
+		consume_token(NEWLINE, true);
+		vector_add(stmts, create_stmt(line, WRITELN_STMT, create_writeln_stmt(NULL)));
+	} else {
+		Expr* writeln_expr = parse_rvalue();
+		consume_token(NEWLINE, true);
+
+		WritelnStmt* writeln_stmt = create_writeln_stmt(writeln_expr);
+		vector_add(stmts, create_stmt(line, WRITELN_STMT, writeln_stmt));
 	}
-
-	consume_token(NEWLINE, true);
-
-	WritelnStmt* writelnstmt = create_writelnstmt(writeln_expr);
-	vector_add(stmts, create_stmt(line, WRITELN_STMT, writelnstmt));
 }
 
-static void while_stmt(int line, int indent) {
-	Expr* cond = expr();
+static void parse_while_stmt(int line, int indent) {
+	Expr* cond = parse_expr();
 	if (cond->type != BINARY ||
 		  !is_comp_operator(((Binary*) cond->expr)->type) ) {
 		syntax_error("invalid conditional in while statement", line, EBAD_COND);
@@ -163,12 +171,12 @@ static void while_stmt(int line, int indent) {
 
 	consume_token(NEWLINE, false);
 
-	WhileStmt* whilestmt = create_whilestmt(cond, block_stmt(line, indent));
-	vector_add(stmts, create_stmt(line, WHILE_STMT, whilestmt));
+	WhileStmt* while_stmt = create_while_stmt(cond, parse_block_stmt(line, indent));
+	vector_add(stmts, create_stmt(line, WHILE_STMT, while_stmt));
 }
 
-static void if_else_stmt(int line, int indent) {
-	Expr* cond = expr();
+static void parse_if_else_stmt(int line, int indent) {
+	Expr* cond = parse_expr();
 	if (cond->type != BINARY ||
 		  !is_comp_operator(((Binary*) cond->expr)->type) ) {
 		syntax_error("invalid conditional in if-else statement", line, EBAD_COND);
@@ -176,7 +184,7 @@ static void if_else_stmt(int line, int indent) {
 
 	consume_token(NEWLINE, false);
 
-	Vector then_stmts = block_stmt(line, indent);
+	Vector then_stmts = parse_block_stmt(line, indent);
 	Vector else_stmts = NULL;
 
 	int temp_curr_token = curr_token;
@@ -186,24 +194,24 @@ static void if_else_stmt(int line, int indent) {
 		// Fix the stream index to read the current statement in the proper context
 		curr_token = temp_curr_token;
 
-		IfElseStmt* ifelsestmt = create_ifelsestmt(cond, then_stmts, else_stmts);
-		vector_add(stmts, create_stmt(line, IF_ELSE_STMT, ifelsestmt));
+		IfElseStmt* if_else_stmt = create_if_else_stmt(cond, then_stmts, else_stmts);
+		vector_add(stmts, create_stmt(line, IF_ELSE_STMT, if_else_stmt));
 		return; // End of if statement
 	}
 
 	if (match_token(ELSE)) {
 		int else_line = consume_token(NEWLINE, false)->line;
-		else_stmts = block_stmt(else_line, indent);
+		else_stmts = parse_block_stmt(else_line, indent);
 	} else {
 		// Fix the stream index to read the current statement in the proper context
 		curr_token = temp_curr_token;
 	}
 
-	IfElseStmt* ifelsestmt = create_ifelsestmt(cond, then_stmts, else_stmts);
-	vector_add(stmts, create_stmt(line, IF_ELSE_STMT, ifelsestmt));
+	IfElseStmt* if_else_stmt = create_if_else_stmt(cond, then_stmts, else_stmts);
+	vector_add(stmts, create_stmt(line, IF_ELSE_STMT, if_else_stmt));
 }
 
-static Vector block_stmt(int line, int indent) {
+static Vector parse_block_stmt(int line, int indent) {
 	int temp_curr_indent = curr_indent;
 	curr_indent = indent + 1;
 
@@ -225,129 +233,162 @@ static Vector block_stmt(int line, int indent) {
 	return block_stmts;
 }
 
-static void random_stmt(int line) {
-	Token* var_token = consume_token(IDENTIFIER, false);
+static void parse_random_stmt(int line) {
+	Expr* lvalue = parse_lvalue();
 	consume_token(NEWLINE, true);
 
-	RandomStmt* randomstmt = create_randomstmt(create_var(var_token->lexeme, 0));
-	vector_add(stmts, create_stmt(line, RANDOM_STMT, randomstmt));
+	RandomStmt* random_stmt = create_random_stmt(lvalue->type == ARRAY, lvalue->expr);
+	vector_add(stmts, create_stmt(line, RANDOM_STMT, random_stmt));
 }
 
-static void arg_size_stmt(int line) {
-	Token* var_token = consume_token(IDENTIFIER, false);
+static void parse_arg_size_stmt(int line) {
+	Expr* lvalue = parse_lvalue();
 	consume_token(NEWLINE, true);
 
-	ArgSizeStmt* argsizestmt = create_argsizestmt(create_var(var_token->lexeme, 0));
-	vector_add(stmts, create_stmt(line, ARG_SIZE_STMT, argsizestmt));
+	ArgSizeStmt* arg_size_stmt = create_arg_size_stmt(lvalue->type == ARRAY, lvalue->expr);
+	vector_add(stmts, create_stmt(line, ARG_SIZE_STMT, arg_size_stmt));
 }
 
-static void arg_stmt(int line) {
-	Expr* index_expr = expr();
-	if (index_expr->type == BINARY) {
-		syntax_error("invalid index in argument statement", line, EBAD_IDX);
+static void parse_arg_stmt(int line) {
+	Expr* index_expr = parse_rvalue();
+	Expr* lvalue = parse_lvalue();
+	consume_token(NEWLINE, true);
+
+	ArgStmt* arg_stmt = create_arg_stmt(index_expr, lvalue->type == ARRAY, lvalue->expr);
+	vector_add(stmts, create_stmt(line, ARG_STMT, arg_stmt));
+}
+
+static void parse_break_stmt(int line) {
+	int n_loops = 1;
+
+	if (peek_token()->type == NUMBER) {
+		n_loops = consume_token(NUMBER, false)->literal;
+		if (n_loops == 0) {
+			syntax_error("invalid loop count in break statement", line, EBAD_LOOPS);
+		}
 	}
 
-	Token* var_token = consume_token(IDENTIFIER, false);
 	consume_token(NEWLINE, true);
-
-	ArgStmt* argstmt = create_argstmt(index_expr, create_var(var_token->lexeme, 0));
-	vector_add(stmts, create_stmt(line, ARG_STMT, argstmt));
+	vector_add(stmts, create_stmt(line, BREAK_STMT, create_break_stmt(n_loops)));
 }
 
-static void break_stmt(int line) {
-	consume_token(NEWLINE, true);
-	vector_add(stmts, create_stmt(line, BREAK_STMT, NULL));
-}
+static void parse_continue_stmt(int line) {
+	int n_loops = 1;
 
-static void continue_stmt(int line) {
-	consume_token(NEWLINE, true);
-	vector_add(stmts, create_stmt(line, CONTINUE_STMT, NULL));
-}
-
-static Expr* expr(void) {
-	Token* left = advance();
-	Token* op = peek();
-
-	ExprType left_type, right_type;
-	void* left_expr;
-	void* right_expr;
-
-	var_or_literal(left, &left_expr, &left_type);
-
-	if (!is_operator(op->type)) {
-		return create_expr(left_type, left_expr);
+	if (peek_token()->type == NUMBER) {
+		n_loops = consume_token(NUMBER, false)->literal;
+		if (n_loops == 0) {
+			syntax_error("invalid loop count in continue statement", line, EBAD_LOOPS);
+		}
 	}
 
-	advance(); // We already have the current token in op
-
-	Token* right = advance();
-	var_or_literal(right, &right_expr, &right_type);
-
-	return create_expr(
-		BINARY,
-		create_binary(
-			op->type,
-			create_expr(left_type, left_expr),
-			create_expr(right_type, right_expr)
-		)
-	);
+	consume_token(NEWLINE, true);
+	vector_add(stmts, create_stmt(line, CONTINUE_STMT, create_continue_stmt(n_loops)));
 }
 
-static void var_or_literal(Token* token, void** expr, ExprType* type) {
-	if (token->type == ENDOFFILE) {
-		int err_line = ((Token*) vector_get(stmts, curr_token-2))->line;
-		syntax_error("unexpected program termination", err_line, EBAD_TERM);
-	}
+void parse_new_stmt(int line) {
+	Token* id_token = consume_token(IDENTIFIER, false);
+	consume_token(LSBRACE, false);
+	Expr* idx_expr = parse_rvalue();
+	consume_token(RSBRACE, false);
+	consume_token(NEWLINE, true);
 
-	if (token->type == NUMBER) {
-		*type = LITERAL;
-		*expr = create_literal(token->literal);
-	} else if (token->type == IDENTIFIER) {
-		*type = VAR;
-		*expr = create_var(token->lexeme, 0);
+	NewStmt* new_stmt = create_new_stmt(id_token->lexeme, idx_expr);
+	vector_add(stmts, create_stmt(line, NEW_STMT, new_stmt));
+}
+
+void parse_free_stmt(int line) {
+	Token* id_token = consume_token(IDENTIFIER, false);
+	consume_token(NEWLINE, true);
+
+	vector_add(stmts, create_stmt(line, FREE_STMT, create_free_stmt(id_token->lexeme)));
+}
+
+static Expr* parse_expr(void) {
+	Expr* left = parse_rvalue();
+	Token* tok = peek_token();
+
+	if (is_operator(tok->type)) {
+		advance_token(); // Consume the operator
+		Expr* right = parse_rvalue();
+		return create_expr(BINARY, create_binary(tok->type, left, right));
 	} else {
-		syntax_error("expected variable or literal", token->line, EBAD_EXPR);
+		return left;
 	}
 }
 
-static Token* advance(void) {
+static Expr* parse_rvalue(void) {
+	Token* curr = advance_token();
+
+	switch (curr->type) {
+		case IDENTIFIER:
+			if (match_token(LSBRACE)) {
+				Expr* idx_expr = parse_rvalue();
+				consume_token(RSBRACE, false);
+				return create_expr(ARRAY, create_array(curr->lexeme, idx_expr));
+			} else {
+				return create_expr(VAR, create_var(curr->lexeme));
+			}
+
+		case NUMBER:
+			return create_expr(LITERAL, create_literal(curr->literal));
+
+		default:
+			syntax_error("expected name or literal", curr->line, EBAD_EXPR);
+			return NULL; // Unreachable -- silences non-void function warning
+	}
+}
+
+static Expr* parse_lvalue(void) {
+	Expr* lvalue = parse_rvalue();
+
+	if (lvalue->type == LITERAL || lvalue->type == BINARY) {
+		syntax_error("expected lvalue", previous_token()->line, EBAD_EXPR);
+	}
+
+	return lvalue;
+}
+
+static Token* advance_token(void) {
 	Token* token = vector_get(token_stream, curr_token);
-	if (!reached_end()) curr_token++;
+	if (!reached_end()) {
+		curr_token++;
+	}
 	return token;
 }
 
-static Token* peek(void) {
+static Token* peek_token(void) {
 	return vector_get(token_stream, curr_token);
 }
 
-static Token* previous(void) {
+static Token* previous_token(void) {
 	assert(curr_token > 0);
 	return vector_get(token_stream, curr_token-1);
 }
 
 static Token* consume_token(TokenType type, bool endable) {
-	Token* next = advance();
+	Token* curr = advance_token();
 
-	if (next->type == ENDOFFILE) {
+	if (curr->type == ENDOFFILE) {
 		if (endable) {
-			return next;
+			return curr;
 		} else {
-			syntax_error("unexpected program termination", next->line, EBAD_TERM);
+			syntax_error("unexpected program termination", curr->line, EBAD_TERM);
 		}
-	} else if (next->type != type) {
-		syntax_error("unexpected token", next->line, EBAD_TOK);
+	} else if (curr->type != type) {
+		syntax_error("unexpected token", curr->line, EBAD_TOK);
 	}
 
-	return next;
+	return curr;
 }
 
 static bool match_token(TokenType type) {
-	Token* next = peek();
-
-	if (next->type != type) {
+	if (peek_token()->type != type) {
 		return false;
 	} else {
-		curr_token++;
+		if (!reached_end()) {
+			curr_token++;
+		}
 		return true;
 	}
 }
@@ -355,7 +396,7 @@ static bool match_token(TokenType type) {
 static int compute_indentation(void) {
 	int indent = 0;
 
-	while (match_token(TAB) && !reached_end()) {
+	while (match_token(TAB)) {
 		indent++;
 	}
 
@@ -381,6 +422,6 @@ static bool reached_end(void) {
 }
 
 static void syntax_error(char* msg, int line, int status) {
-	fprintf(stderr, "Syntax Error: %s at line %d", msg, line);
+	fprintf(stderr, "Syntax Error: %s at line %d\n", msg, line);
 	exit(status);
 }
