@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 #include <stdlib.h>
 
+#include "expr.h"
 #include "stmt.h"
 
 Stmt* create_stmt(int line, StmtType type, void* stmt) {
@@ -15,26 +17,28 @@ Stmt* create_stmt(int line, StmtType type, void* stmt) {
 	return new_stmt;
 }
 
-ReadStmt* create_readstmt(Var* var) {
+ReadStmt* create_read_stmt(bool is_array, void* lvalue) {
 	ReadStmt* new_stmt = malloc(sizeof(ReadStmt));
 	assert(new_stmt != NULL);
 
-	new_stmt->var = var;
+	new_stmt->is_array = is_array;
+	new_stmt->lvalue = lvalue;
 
 	return new_stmt;
 }
 
-AssignmentStmt* create_assignmentstmt(Var* lvalue, Expr* expr) {
+AssignmentStmt* create_assignment_stmt(bool is_array, void* lvalue, Expr* expr) {
 	AssignmentStmt* new_stmt = malloc(sizeof(AssignmentStmt));
 	assert(new_stmt != NULL);
 
+	new_stmt->is_array = is_array;
 	new_stmt->lvalue = lvalue;
 	new_stmt->expr = expr;
 
 	return new_stmt;
 }
 
-WriteStmt* create_writestmt(Expr* expr) {
+WriteStmt* create_write_stmt(Expr* expr) {
 	WriteStmt* new_stmt = malloc(sizeof(WriteStmt));
 	assert(new_stmt != NULL);
 
@@ -43,7 +47,7 @@ WriteStmt* create_writestmt(Expr* expr) {
 	return new_stmt;
 }
 
-WritelnStmt* create_writelnstmt(Expr* expr) {
+WritelnStmt* create_writeln_stmt(Expr* expr) {
 	WritelnStmt* new_stmt = malloc(sizeof(WritelnStmt));
 	assert(new_stmt != NULL);
 
@@ -52,7 +56,7 @@ WritelnStmt* create_writelnstmt(Expr* expr) {
 	return new_stmt;
 }
 
-WhileStmt* create_whilestmt(Expr* cond, Vector stmts) {
+WhileStmt* create_while_stmt(Expr* cond, Vector stmts) {
 	WhileStmt* new_stmt = malloc(sizeof(WhileStmt));
 	assert(new_stmt != NULL);
 
@@ -62,7 +66,7 @@ WhileStmt* create_whilestmt(Expr* cond, Vector stmts) {
 	return new_stmt;
 }
 
-IfElseStmt* create_ifelsestmt(Expr* cond, Vector then_stmts, Vector else_stmts) {
+IfElseStmt* create_if_else_stmt(Expr* cond, Vector then_stmts, Vector else_stmts) {
 	IfElseStmt* new_stmt = malloc(sizeof(IfElseStmt));
 	assert(new_stmt != NULL);
 
@@ -73,30 +77,70 @@ IfElseStmt* create_ifelsestmt(Expr* cond, Vector then_stmts, Vector else_stmts) 
 	return new_stmt;
 }
 
-RandomStmt* create_randomstmt(Var* var) {
+RandomStmt* create_random_stmt(bool is_array, void* lvalue) {
 	RandomStmt* new_stmt = malloc(sizeof(RandomStmt));
 	assert(new_stmt != NULL);
 
-	new_stmt->var = var;
+	new_stmt->is_array = is_array;
+	new_stmt->lvalue = lvalue;
 
 	return new_stmt;
 }
 
-ArgStmt* create_argstmt(Expr* expr, Var* var) {
+ArgSizeStmt* create_arg_size_stmt(bool is_array, void* lvalue) {
+	ArgSizeStmt* new_stmt = malloc(sizeof(ArgSizeStmt));
+	assert(new_stmt != NULL);
+
+	new_stmt->is_array = is_array;
+	new_stmt->lvalue = lvalue;
+
+	return new_stmt;
+}
+
+ArgStmt* create_arg_stmt(Expr* expr, bool is_array, void* lvalue) {
 	ArgStmt* new_stmt = malloc(sizeof(ArgStmt));
 	assert(new_stmt != NULL);
 
 	new_stmt->expr = expr;
-	new_stmt->var = var;
+	new_stmt->is_array = is_array;
+	new_stmt->lvalue = lvalue;
 
 	return new_stmt;
 }
 
-ArgSizeStmt* create_argsizestmt(Var* var) {
-	ArgSizeStmt* new_stmt = malloc(sizeof(ArgSizeStmt));
+BreakStmt* create_break_stmt(int n_loops) {
+	BreakStmt* new_stmt = malloc(sizeof(BreakStmt));
 	assert(new_stmt != NULL);
 
-	new_stmt->var = var;
+	new_stmt->n_loops = n_loops;
+
+	return new_stmt;
+}
+
+ContinueStmt* create_continue_stmt(int n_loops) {
+	ContinueStmt* new_stmt = malloc(sizeof(ContinueStmt));
+	assert(new_stmt != NULL);
+
+	new_stmt->n_loops = n_loops;
+
+	return new_stmt;
+}
+
+NewStmt* create_new_stmt(char* id, Expr* size) {
+	NewStmt* new_stmt = malloc(sizeof(NewStmt));
+	assert(new_stmt != NULL);
+
+	new_stmt->id = strdup(id);
+	new_stmt->size = size;
+
+	return new_stmt;
+}
+
+FreeStmt* create_free_stmt(char* id) {
+	FreeStmt* new_stmt = malloc(sizeof(FreeStmt));
+	assert(new_stmt != NULL);
+
+	new_stmt->id = strdup(id);
 
 	return new_stmt;
 }
@@ -106,18 +150,19 @@ void destroy_stmt(void* stmt) {
 
 	Stmt* stmtt = (Stmt*) stmt;
 	switch (stmtt->type) {
-		case READ_STMT: destroy_readstmt(stmtt->stmt); break;
-		case ASSIGNMENT_STMT: destroy_assignmentstmt(stmtt->stmt); break;
-		case WRITE_STMT: destroy_writestmt(stmtt->stmt); break;
-		case WRITELN_STMT: destroy_writelnstmt(stmtt->stmt); break;
-		case WHILE_STMT: destroy_whilestmt(stmtt->stmt); break;
-		case IF_ELSE_STMT: destroy_ifelsestmt(stmtt->stmt); break;
-		case RANDOM_STMT: destroy_randomstmt(stmtt->stmt); break;
-		case ARG_STMT: destroy_argstmt(stmtt->stmt); break;
-		case ARG_SIZE_STMT: destroy_argsizestmt(stmtt->stmt); break;
-		case BREAK_STMT:
-		case CONTINUE_STMT:
-			break;
+		case READ_STMT: destroy_read_stmt(stmtt->stmt); break;
+		case ASSIGNMENT_STMT: destroy_assignment_stmt(stmtt->stmt); break;
+		case WRITE_STMT: destroy_write_stmt(stmtt->stmt); break;
+		case WRITELN_STMT: destroy_writeln_stmt(stmtt->stmt); break;
+		case WHILE_STMT: destroy_while_stmt(stmtt->stmt); break;
+		case IF_ELSE_STMT: destroy_if_else_stmt(stmtt->stmt); break;
+		case RANDOM_STMT: destroy_random_stmt(stmtt->stmt); break;
+		case ARG_STMT: destroy_arg_stmt(stmtt->stmt); break;
+		case ARG_SIZE_STMT: destroy_arg_size_stmt(stmtt->stmt); break;
+		case NEW_STMT: destroy_new_stmt(stmtt->stmt); break;
+		case FREE_STMT: destroy_free_stmt(stmtt->stmt); break;
+		case BREAK_STMT: break;
+		case CONTINUE_STMT: break;
 		default:
 			fprintf(stderr, "Invalid statement type (this shouldn't be printed)\n");
 			exit(EXIT_FAILURE);
@@ -126,40 +171,56 @@ void destroy_stmt(void* stmt) {
 	free(stmtt);
 }
 
-void destroy_readstmt(void* stmt) {
+void destroy_read_stmt(void* stmt) {
 	assert(stmt != NULL);
 
 	ReadStmt* stmtt = (ReadStmt*) stmt;
-	destroy_var(stmtt->var);
+	if (stmtt->is_array) {
+		destroy_array(stmtt->lvalue);
+	} else {
+		destroy_var(stmtt->lvalue);
+	}
+
 	free(stmtt);
 }
 
-void destroy_assignmentstmt(void* stmt) {
+void destroy_assignment_stmt(void* stmt) {
 	assert(stmt != NULL);
 
 	AssignmentStmt* stmtt = (AssignmentStmt*) stmt;
-	destroy_var(stmtt->lvalue);
+	if (stmtt->is_array) {
+		destroy_array(stmtt->lvalue);
+	} else {
+		destroy_var(stmtt->lvalue);
+	}
+
 	destroy_expr(stmtt->expr);
 	free(stmtt);
 }
 
-void destroy_writestmt(void* stmt) {
+void destroy_write_stmt(void* stmt) {
 	assert(stmt != NULL);
 
 	WriteStmt* stmtt = (WriteStmt*) stmt;
-	destroy_expr(stmtt->expr);
+	if (stmtt->expr != NULL) {
+		destroy_expr(stmtt->expr);
+	}
+
 	free(stmtt);
 }
 
-void destroy_writelnstmt(void* stmt) {
+void destroy_writeln_stmt(void* stmt) {
 	assert(stmt != NULL);
 
 	WritelnStmt* stmtt = (WritelnStmt*) stmt;
-	destroy_expr(stmtt->expr);
+	if (stmtt->expr != NULL) {
+		destroy_expr(stmtt->expr);
+	}
+
 	free(stmtt);
 }
 
-void destroy_whilestmt(void* stmt) {
+void destroy_while_stmt(void* stmt) {
 	assert(stmt != NULL);
 
 	WhileStmt* stmtt = (WhileStmt*) stmt;
@@ -168,7 +229,7 @@ void destroy_whilestmt(void* stmt) {
 	free(stmtt);
 }
 
-void destroy_ifelsestmt(void* stmt) {
+void destroy_if_else_stmt(void* stmt) {
 	assert(stmt != NULL);
 
 	IfElseStmt* stmtt = (IfElseStmt*) stmt;
@@ -182,27 +243,74 @@ void destroy_ifelsestmt(void* stmt) {
 	free(stmtt);
 }
 
-void destroy_randomstmt(void* stmt) {
+void destroy_random_stmt(void* stmt) {
 	assert(stmt != NULL);
 
 	RandomStmt* stmtt = (RandomStmt*) stmt;
-	destroy_var(stmtt->var);
+	if (stmtt->is_array) {
+		destroy_array(stmtt->lvalue);
+	} else {
+		destroy_var(stmtt->lvalue);
+	}
+
 	free(stmtt);
 }
 
-void destroy_argstmt(void* stmt) {
+void destroy_arg_size_stmt(void* stmt) {
+	assert(stmt != NULL);
+
+	ArgSizeStmt* stmtt = (ArgSizeStmt*) stmt;
+	if (stmtt->is_array) {
+		destroy_array(stmtt->lvalue);
+	} else {
+		destroy_var(stmtt->lvalue);
+	}
+
+	free(stmtt);
+}
+
+void destroy_arg_stmt(void* stmt) {
 	assert(stmt != NULL);
 
 	ArgStmt* stmtt = (ArgStmt*) stmt;
 	destroy_expr(stmtt->expr);
-	destroy_var(stmtt->var);
+
+	if (stmtt->is_array) {
+		destroy_array(stmtt->lvalue);
+	} else {
+		destroy_var(stmtt->lvalue);
+	}
+
 	free(stmtt);
 }
 
-void destroy_argsizestmt(void* stmt) {
+void destroy_break_stmt(void* stmt) {
 	assert(stmt != NULL);
 
-	ArgSizeStmt* stmtt = (ArgSizeStmt*) stmt;
-	destroy_var(stmtt->var);
+	BreakStmt* stmtt = (BreakStmt*) stmt;
+	free(stmtt);
+}
+
+void destroy_continue_stmt(void* stmt) {
+	assert(stmt != NULL);
+
+	ContinueStmt* stmtt = (ContinueStmt*) stmt;
+	free(stmtt);
+}
+
+void destroy_new_stmt(void* stmt) {
+	assert(stmt != NULL);
+
+	NewStmt* stmtt = (NewStmt*) stmt;
+	free(stmtt->id);
+	destroy_expr(stmtt->size);
+	free(stmtt);
+}
+
+void destroy_free_stmt(void* stmt) {
+	assert(stmt != NULL);
+
+	FreeStmt* stmtt = (FreeStmt*) stmt;
+	free(stmtt->id);
 	free(stmtt);
 }
