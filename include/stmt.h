@@ -12,7 +12,7 @@ typedef enum stmt_type {
 	WHILE_STMT, IF_ELSE_STMT,
 	RANDOM_STMT, ARG_STMT, ARG_SIZE_STMT,
 	BREAK_STMT, CONTINUE_STMT,
-	NEW_STMT, FREE_STMT
+	NEW_STMT, FREE_STMT, SIZE_STMT
 } StmtType;
 
 typedef struct stmt {
@@ -84,6 +84,12 @@ typedef struct free_stmt {
 	char* id;
 } FreeStmt;
 
+typedef struct size_stmt {
+	char* id;
+	bool is_array;
+	void* lvalue;
+} SizeStmt;
+
 // Constructors for the above types
 Stmt* create_stmt(int line, StmtType type, void* stmt);
 ReadStmt* create_read_stmt(bool is_array, void* lvalue);
@@ -99,6 +105,7 @@ BreakStmt* create_break_stmt(int n_loops);
 ContinueStmt* create_continue_stmt(int n_loops);
 NewStmt* create_new_stmt(char* id, Expr* size);
 FreeStmt* create_free_stmt(char* id);
+SizeStmt* create_size_stmt(char* id, bool is_array, void* lvalue);
 
 // Destructors for the above types
 void destroy_stmt(void* stmt);
@@ -115,5 +122,6 @@ void destroy_break_stmt(void* stmt);
 void destroy_continue_stmt(void* stmt);
 void destroy_new_stmt(void* stmt);
 void destroy_free_stmt(void* stmt);
+void destroy_size_stmt(void* stmt);
 
 #endif // STMT_H
