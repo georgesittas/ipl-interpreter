@@ -3,8 +3,8 @@
 
 #include "vector.h"
 
-// Parses a stream of tokens against IPL's grammar and returns a vector
-// of statements ready to be executed by the interpreter
+// Parses a stream of tokens and returns a vector of statements ready to be executed
+// by the interpreter
 Vector parse(Vector tokens);
 
 #endif // PARSER_H
