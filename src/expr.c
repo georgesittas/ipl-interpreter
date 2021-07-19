@@ -25,25 +25,21 @@ Literal* create_literal(int value) {
 	return new_literal;
 }
 
-Var* create_var(char* id, int value) {
+Var* create_var(char* id) {
 	Var* new_var = malloc(sizeof(Var));
 	assert(new_var != NULL);
 
 	new_var->id = strdup(id);
-	new_var->value = value;
 
 	return new_var;
 }
 
-Array* create_array(char* id, int size) {
+Array* create_array(char* id, Expr* index) {
 	Array* new_array = malloc(sizeof(Array));
 	assert(new_array != NULL);
 
 	new_array->id = strdup(id);
-	new_array->size = size;
-
-	new_array->values = calloc(size, sizeof(int));
-	assert(new_array->values != NULL);
+	new_array->index = index;
 
 	return new_array;
 }
@@ -66,6 +62,7 @@ void destroy_expr(void* expr) {
 	switch (exprr->type) {
 		case LITERAL: destroy_literal(exprr->expr); break;
 		case VAR: destroy_var(exprr->expr); break;
+		case ARRAY: destroy_array(exprr->expr); break;
 		case BINARY: destroy_binary(exprr->expr); break;
 		default:
 			fprintf(stderr, "Invalid expression type (shouldn't be printed)\n");
@@ -95,7 +92,7 @@ void destroy_array(void* expr) {
 
 	Array* exprr = (Array*) expr;
 	free(exprr->id);
-	free(exprr->values);
+	destroy_expr(exprr->index);
 	free(exprr);
 }
 
