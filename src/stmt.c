@@ -145,6 +145,17 @@ FreeStmt* create_free_stmt(char* id) {
 	return new_stmt;
 }
 
+SizeStmt* create_size_stmt(char* id, bool is_array, void* lvalue) {
+	SizeStmt* new_stmt = malloc(sizeof(SizeStmt));
+	assert(new_stmt != NULL);
+
+	new_stmt->id = strdup(id);
+	new_stmt->is_array = is_array;
+	new_stmt->lvalue = lvalue;
+
+	return new_stmt;
+}
+
 void destroy_stmt(void* stmt) {
 	assert(stmt != NULL);
 
@@ -161,6 +172,7 @@ void destroy_stmt(void* stmt) {
 		case ARG_SIZE_STMT: destroy_arg_size_stmt(stmtt->stmt); break;
 		case NEW_STMT: destroy_new_stmt(stmtt->stmt); break;
 		case FREE_STMT: destroy_free_stmt(stmtt->stmt); break;
+		case SIZE_STMT: destroy_size_stmt(stmtt->stmt); break;
 		case BREAK_STMT: break;
 		case CONTINUE_STMT: break;
 		default:
@@ -311,6 +323,20 @@ void destroy_free_stmt(void* stmt) {
 	assert(stmt != NULL);
 
 	FreeStmt* stmtt = (FreeStmt*) stmt;
+	free(stmtt->id);
+	free(stmtt);
+}
+
+void destroy_size_stmt(void* stmt) {
+	assert(stmt != NULL);
+
+	SizeStmt* stmtt = (SizeStmt*) stmt;
+	if (stmtt->is_array) {
+		destroy_array(stmtt->lvalue);
+	} else {
+		destroy_var(stmtt->lvalue);
+	}
+
 	free(stmtt->id);
 	free(stmtt);
 }
