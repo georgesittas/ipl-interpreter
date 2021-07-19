@@ -4,7 +4,7 @@
 #include "token.h"
 
 typedef enum expr_type {
-	LITERAL, VAR, BINARY
+	LITERAL, VAR, ARRAY, BINARY
 } ExprType;
 
 typedef struct expr {
@@ -18,13 +18,12 @@ typedef struct literal {
 
 typedef struct var {
 	char* id;
-	int value;
+	int value; // This will be useful for the runtime
 } Var;
 
 typedef struct array {
-	char* id
-	int size;
-	int* values;
+	char* id;
+	Expr* index;
 } Array;
 
 typedef struct binary {
@@ -36,8 +35,8 @@ typedef struct binary {
 // Constructors for the above types
 Expr* create_expr(ExprType type, void* expr);
 Literal* create_literal(int value);
-Var* create_var(char* id, int value);
-Array* create_array(char* id, int size);
+Var* create_var(char* id);
+Array* create_array(char* id, Expr* index);
 Binary* create_binary(TokenType type, Expr* left, Expr* right);
 
 // Destructors for the above types
