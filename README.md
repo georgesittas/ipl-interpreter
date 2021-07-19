@@ -1,9 +1,9 @@
 # IPL Interpreter
 
-For this project, I've implemented an interpreter for
-[IPL (Introduction to Programming Language)](https://github.com/GeorgeSittas/ipl-interpreter/blob/main/specification.pdf),
-using some of the techniques I learned from the book [Crafting Interpreters](https://craftinginterpreters.com/). The language
-is briefly described as follows:
+For this project, I've implemented an interpreter for [IPL](https://github.com/GeorgeSittas/ipl-interpreter/blob/main/specification.pdf),
+a small imperative language created for educational purposes in the Introduction to Programming course ([k04](http://cgi.di.uoa.gr/~ip/)),
+using some of the techniques I learned from the book [Crafting Interpreters](https://craftinginterpreters.com/). The language is briefly
+described as follows:
 
 ### Types
 
