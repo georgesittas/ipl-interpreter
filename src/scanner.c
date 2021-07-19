@@ -19,8 +19,8 @@ static void install_keywords(void);
 static int identifier_token(char* lexeme);
 static void destroy_token(void* item);
 static void scan_token(void);
-static void identifier(void);
-static void number(void);
+static void scan_identifier(void);
+static void scan_number(void);
 static void consume_symbol(int symbol);
 static bool match_symbol(int symbol);
 static void add_token(TokenType type, char* lexeme, int literal);
@@ -175,9 +175,9 @@ static void scan_token(void) {
 					}
 				}
 
-				identifier();
+				scan_identifier();
 			} else if (is_digit(symbol)) {
-				number();
+				scan_number();
 			} else if (symbol != EOF) {
 				fprintf(stderr, "Lexical Error: unexpected character at line %d - %c\n", line, symbol);
 				exit(EBAD_SYMBOL);
@@ -188,7 +188,7 @@ static void scan_token(void) {
 	computing_indentation = false;
 }
 
-static void identifier(void) {
+static void scan_identifier(void) {
 	int symbol;
 
 	while (!reached_eof()) {
@@ -205,7 +205,7 @@ static void identifier(void) {
 	add_token(identifier_token(lexeme), lexeme, 0);
 }
 
-static void number(void) {
+static void scan_number(void) {
 	int symbol;
 
 	while (!reached_eof()) {
