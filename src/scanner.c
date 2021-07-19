@@ -11,6 +11,8 @@
 #include "token.h"
 #include "scanner.h"
 
+#define MAX_LEXEME 100
+
 // Helper functions used by the scanner (no reason to expose them)
 static int* create_int(int value);
 static void install_keywords(void);
