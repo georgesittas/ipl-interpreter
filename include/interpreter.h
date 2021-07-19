@@ -3,13 +3,6 @@
 
 #include "vector.h"
 
-#include "expr.h"
-
-typedef struct table_entry {
-	ExprType type;
-	void* value;
-} TableEntry;
-
 // Executes a program that's represented as a vector of statements
 void execute(Vector stmts, int argc, char **argv);
 
