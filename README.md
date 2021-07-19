@@ -34,9 +34,8 @@ used without an argument, in which case a single space or newline character will
 
 ### Arithmetic Expressions
 
-The language only supports binary arithmetic expressions (that is, of the form `<operand1> <operator> <operand2>`), where each
-operand can be either a constant, a variable or an element array. The supported operators are: +, -, /, * and %, and they
-behave exactly like they do in C.
+The language only supports binary arithmetic expressions, where each of the two operands can be either a constant, a variable or an
+element array. The supported operators are: +, -, /, * and %, and they behave exactly like they do in C.
 
 ### Assignment
 
