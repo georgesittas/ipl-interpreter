@@ -18,7 +18,7 @@ with a letter (upper or lower case), (possibly) followed by either a letter, a d
 ### Constants
 
 Only non-negative integer constants are allowed in IPL, so for example -5 is disallowed while 6 is allowed in the program text.
-Ofcourse, one can produce negative values by subtracting from 0 and saving the result in a variable for later use.
+Ofcourse, one can produce negative values with the help of subtraction (eg. -5 = 0 - 5).
 
 ### Input
 
