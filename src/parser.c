@@ -27,6 +27,7 @@ static void parse_break_stmt(int line);
 static void parse_continue_stmt(int line);
 static void parse_new_stmt(int line);
 static void parse_free_stmt(int line);
+static void parse_size_stmt(int line);
 static Expr* parse_expr(void);
 static Expr* parse_rvalue(void);
 static Expr* parse_lvalue(void);
@@ -90,6 +91,7 @@ static void parse_stmt(void) {
 		case CONTINUE: parse_continue_stmt(token->line); break;
 		case NEW: parse_new_stmt(token->line); break;
 		case FREE: parse_free_stmt(token->line); break;
+		case SIZE: parse_size_stmt(token->line); break;
 
 		case ARGUMENT:
 			if (match_token(SIZE)) {
@@ -286,7 +288,7 @@ static void parse_continue_stmt(int line) {
 	vector_add(stmts, create_stmt(line, CONTINUE_STMT, create_continue_stmt(n_loops)));
 }
 
-void parse_new_stmt(int line) {
+static void parse_new_stmt(int line) {
 	Token* id_token = consume_token(IDENTIFIER, false);
 	consume_token(LSBRACE, false);
 	Expr* idx_expr = parse_rvalue();
@@ -297,11 +299,23 @@ void parse_new_stmt(int line) {
 	vector_add(stmts, create_stmt(line, NEW_STMT, new_stmt));
 }
 
-void parse_free_stmt(int line) {
+static void parse_free_stmt(int line) {
 	Token* id_token = consume_token(IDENTIFIER, false);
 	consume_token(NEWLINE, true);
 
 	vector_add(stmts, create_stmt(line, FREE_STMT, create_free_stmt(id_token->lexeme)));
+}
+
+static void parse_size_stmt(int line) {
+	Token* id_token = consume_token(IDENTIFIER, false);
+	Expr* lvalue = parse_lvalue();
+	consume_token(NEWLINE, true);
+
+	SizeStmt* size_stmt = create_size_stmt(
+		id_token->lexeme, lvalue->type == ARRAY, lvalue->expr
+	);
+
+	vector_add(stmts, create_stmt(line, SIZE_STMT, size_stmt));
 }
 
 static Expr* parse_expr(void) {
