@@ -171,7 +171,7 @@ static void scan_token(void) {
 
 				if (computing_indentation) {
 					while (current_indentation--) {
-						add_token(TAB, "\\t", 0); // Add the tabs we skipped over earlier
+						add_token(TAB, "\\t", 0); // Add the tabs we counted earlier
 					}
 				}
 
