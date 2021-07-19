@@ -29,7 +29,8 @@ an array element.
 ### Output
 
 The built-in commands `write <expr>` and `writeln <expr>` are provided for outputing integer values, where `<expr>` can be either
-a constant, a variable or an array element. The former outputs a trailing space, while the latter a newline.
+a constant, a variable or an array element. The former outputs a trailing space, while the latter a newline. These can also be
+used without an argument, in which case a single space or newline character will be printed.
 
 ### Arithmetic Expressions
 
@@ -94,7 +95,26 @@ index. If the index is out-of-bounds, a runtime error is raised.
 
 ### Break and Continue
 
-The language provides a break statement and a continue statement, that behave exactly like in C.
+The built-in commands `break <n>` and `continue <n>` behave exactly like they do in C if `<n> = 1`, otherwise they
+"go up" by `<n>` loops, where `<n>` is a positive integer. The following example will probably help to understand
+them better (it outputs:
+
+```c
+while a < 5
+  a = a + 1
+  write a
+  if a == 3
+    break
+  while b < 20
+    b = b + 1
+    write b
+    c = b % 5
+    if c == 0
+      continue 2
+writeln
+```
+
+`Output: 1 1 2 3 4 5 2 6 7 8 9 10 3`
 
 ### Arrays
 
@@ -124,5 +144,4 @@ have been made:
 
 ## To-Do List
 
-- [ ] Add support for arrays.
 - [ ] Create a test-suite for the interpreter & automate testing.
