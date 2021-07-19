@@ -144,3 +144,4 @@ have been made:
 ## To-Do List
 
 - [ ] Create a test-suite for the interpreter & automate testing.
+- [ ] Add support for the verbose mode
