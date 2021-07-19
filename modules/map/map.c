@@ -188,8 +188,8 @@ void map_put(Map map, void* key, void* value) {
 	add_to_list(map->buckets[idx], create_kvpair(key, value));
 	map->size++;
 
-	if (map->size == map->cap) {
-		rehash(map);
+	if (((double) map->size) / map->cap >= 0.8) {
+		rehash(map); // Rehash if load factor reaches 80%
 	}
 }
 
