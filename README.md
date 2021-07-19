@@ -57,7 +57,7 @@ while <condition>
 <tab> <statement2>
 ....
 ```
-That is, the loop's body is a block of statements that are indented by exactly one more tab to the right.
+That is, the loop's body is a block of statements that are indented by exactly one more tab than it.
 
 ### Branching
 
