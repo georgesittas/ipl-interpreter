@@ -11,6 +11,11 @@
 #include "error.h"
 #include "interpreter.h"
 
+typedef struct table_entry {
+	ExprType type;
+	void* value;
+} TableEntry;
+
 // Helper functions used by the interpreter (no reason to expose them)
 static TableEntry* create_table_entry(ExprType type, void* value);
 static void execute_read_stmt(int line, ReadStmt* stmt);
