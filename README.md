@@ -22,24 +22,24 @@ Ofcourse, one can produce negative values with the help of subtraction (eg. -5 =
 
 ### Input
 
-The built-in command `read <lvalue>` is provided for reading integer values into `<lvalue>`, which can either be a variable or
+The built-in command `read <lvalue>` is provided for reading integer values into `<lvalue>`, which can be either a variable or
 an array element.
 
 ### Output
 
 The built-in commands `write <expr>` and `writeln <expr>` are provided for outputing integer values, where `<expr>` can be either
-a constant, a variable or an arrary element. The former outputs a trailing space, while the latter a newline.
+a constant, a variable or an array element. The former outputs a trailing space, while the latter a newline.
 
 ### Arithmetic Expressions
 
 The language only supports binary arithmetic expressions (that is, of the form `<operand1> <operator> <operand2>`), where each
-operand can either be a constant, a variable or an element array. The supported operators are: +, -, /, * and %, and they
+operand can be either a constant, a variable or an element array. The supported operators are: +, -, /, * and %, and they
 behave exactly like they do in C.
 
 ### Assignment
 
 One can assign an integer value to a variable or to an array element by using the assignment statement, which follows the
-syntax `<lvalue> = <expr>`. Here, `<expr`> can either be a constant, a variable, an array element or an arithmetic expression.
+syntax `<lvalue> = <expr>`. Here, `<expr`> can be either a constant, a variable, an array element or an arithmetic expression.
 
 ### Conditions
 
@@ -97,12 +97,12 @@ The language provides a break statement and a continue statement, that behave ex
 
 ### Arrays
 
-Integer arrays can be created as `new <name>[<expr>]`, where `<name>` is the array's identifier and `<expr>` can either
-be a constant, a variable or an array element (different than zero, in any of these cases), representing the array's
+Integer arrays can be created as `new <name>[<expr>]`, where `<name>` is the array's identifier and `<expr>` can be either
+a constant, a variable or an array element (different than zero, in any of these cases), representing the array's
 dimension. There can't be a collision between array and variable names. All uninitialized array elements are implicitly
 initialized to 0, similar to how variables work. Finally, the array's memory can be collected with the free statement,
 as in `free <name>`, where `<name>` is the identifier of the array-to-be-deallocated. An array element reference works
-just like in C: `<name>[<expr>]`, where `<expr>` can either be a constant, a variable or an array element (again, an
+just like in C: `<name>[<expr>]`, where `<expr>` can be either a constant, a variable or an array element (again, an
 out-of-bounds index will raise a runtime error).
 
 ## Compilation
