@@ -18,7 +18,7 @@ with a letter (upper or lower case), (possibly) followed by a string that contai
 
 ### Constants
 
-Only non-negative integer constants are allowed in IPL, so for example 6 is an valid constant while -5 is not. Ofcourse, one can produce
+Only non-negative integer constants are allowed in IPL, so for example 6 is a valid constant while -5 is not. Ofcourse, one can produce
 negative values with the help of subtraction (eg. -5 = 0 - 5).
 
 ### Input
