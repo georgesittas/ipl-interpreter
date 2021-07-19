@@ -123,5 +123,5 @@ have been made:
 
 ## To-Do List
 
-- [ ] Add support for arrays (they have been omitted at this stage).
+- [ ] Add support for arrays.
 - [ ] Create a test-suite for the interpreter & automate testing.
