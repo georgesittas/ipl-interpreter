@@ -35,7 +35,7 @@ used without an argument, in which case a single space or newline character will
 ### Arithmetic Expressions
 
 The language only supports binary arithmetic expressions, where each of the two operands can be either a constant, a variable or an
-element array. The supported operators are: +, -, /, * and %, and they behave exactly like they do in C.
+element array. The supported operators are: +, -, /, * and %, and they have the same semantics as in C.
 
 ### Assignment
 
@@ -45,8 +45,8 @@ syntax `<lvalue> = <expr>`. Here, `<expr`> can be either a constant, a variable,
 ### Conditions
 
 Conditions follow the same format as the arithmetic expressions, but they can only be used in control-flow constructs like
-if-else and while statements (see below). The supported operators are: ==, !=, <=, <, >= and >, and they behave exactly like
-they do in C.
+if-else and while statements (see below). The supported operators are: ==, !=, <=, <, >= and >, and they have the same semantics
+as in C.
 
 ### While loop
 
@@ -94,9 +94,9 @@ index. If the index is out-of-bounds, a runtime error is raised.
 
 ### Break and Continue
 
-The built-in commands `break <n>` and `continue <n>` behave exactly like break and continue (respectively) in C if
-`<n> = 1`, otherwise they "go up" `<n>` loops, where `<n>` is a positive integer. The following example will probably
-help to understand them better:
+The built-in commands `break <n>` and `continue <n>` have the same semantics as break and continue in C, if `<n> = 1`,
+otherwise they "go up" `<n>` loops, where `<n>` is a positive integer. The following example will probably help to
+understand them better:
 
 ```c
 while a < 5
