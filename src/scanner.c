@@ -37,7 +37,9 @@ static int line = 1;
 static int lexeme_pos = 0;
 static char lexeme[MAX_LEXEME+1];
 
+static int current_indentation = 0;
 static bool computing_indentation = true;
+static bool currently_at_blank_line = true;
 
 static int* create_int(int value) {
 	int* new_int = malloc(sizeof(int));
@@ -134,7 +136,7 @@ static void scan_token(void) {
 
 		case '\t':
 			if (computing_indentation) {
-				add_token(TAB, "\\t", 0);
+				current_indentation++;
 			}
 			return;
 
@@ -147,9 +149,14 @@ static void scan_token(void) {
 			}
 
 		case '\n':
-			computing_indentation = true;
-			add_token(NEWLINE, "\\n", 0);
+			if (!currently_at_blank_line) {
+				add_token(NEWLINE, "\\n", 0); // No need to add tokens for empty lines
+			}
+
 			line++;
+			current_indentation = 0;
+			computing_indentation = true;
+			currently_at_blank_line = true;
 			return;
 
 		case ' ':
@@ -158,6 +165,14 @@ static void scan_token(void) {
 		default:
 			lexeme[lexeme_pos++] = symbol;
 			if (is_alpha(symbol)) {
+				currently_at_blank_line = false; // Non-blank lines start with an identifier
+
+				if (computing_indentation) {
+					while (current_indentation--) {
+						add_token(TAB, "\\t", 0); // Add the tabs we skipped over earlier
+					}
+				}
+
 				identifier();
 			} else if (is_digit(symbol)) {
 				number();
