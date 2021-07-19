@@ -12,8 +12,8 @@ The language only supports integers, as well as arrays of integers.
 ### Variables
 
 Since there are only integer variables in IPL, they need not be declared before their use and each uninitialized variable is
-implicitly initialized to 0 (on its first use). Variable names can start with a letter (upper or lower
-case), and can be followed by either a letter, a digit or an underscore (in regex terms: [a-zA-Z][a-zA-Z0-9_]*).
+implicitly initialized to 0 (on its first use). Variable names can't consist of more than 100 characters and they must start
+with a letter (upper or lower case), followed possibly by either a letter, a digit or an underscore (in regex terms: [a-zA-Z][a-zA-Z0-9_]*).
 
 ### Constants
 
@@ -120,7 +120,6 @@ have been made:
 
 - A command can contain an arbitrary number of whitespace (spaces or tabs) between variables, operators, etc.
 - The indentation of a command is determined by the number of tabs at the beginning of each line.
-- A variable name cannot contain more than 100 characters.
 
 ## To-Do List
 
