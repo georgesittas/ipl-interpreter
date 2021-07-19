@@ -120,10 +120,11 @@ writeln
 Integer arrays can be created as `new <name>[<expr>]`, where `<name>` is the array's identifier and `<expr>` can be either
 a constant, a variable or an array element (different than zero, in any of these cases), representing the array's
 dimension. Arrays and variables must have different names. All uninitialized array elements are implicitly
-initialized to 0, similar to how variables work. Finally, the array's memory can be collected with the free statement,
-as in `free <name>`, where `<name>` is the identifier of the array-to-be-deallocated. An array element reference works
-just like in C: `<name>[<expr>]`, where `<expr>` can be either a constant, a variable or an array element (again, an
-out-of-bounds index will raise a runtime error).
+initialized to 0, similar to how variables work. The array's memory can be collected with the free statement, as in
+`free <name>`, where `<name>` is the identifier of the array-to-be-deallocated. An array element reference works just like
+in C: `<name>[<expr>]`, where `<expr>` can be either a constant, a variable or an array element (again, an out-of-bounds
+index will raise a runtime error). Finally, one can use the built-in command `size <name> <lvalue>` to store the size of
+the array referred to by `<name>` in `<lvalue>`, which can be either a variable or an array element.
 
 ## Compilation
 
