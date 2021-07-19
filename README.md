@@ -95,9 +95,9 @@ index. If the index is out-of-bounds, a runtime error is raised.
 
 ### Break and Continue
 
-The built-in commands `break <n>` and `continue <n>` behave exactly like they do in C if `<n> = 1`, otherwise they
-"go up" `<n>` loops, where `<n>` is a positive integer. The following example will probably help to understand them
-better:
+The built-in commands `break <n>` and `continue <n>` behave exactly like break and continue (respectively) in C if
+`<n> = 1`, otherwise they "go up" `<n>` loops, where `<n>` is a positive integer. The following example will probably
+help to understand them better:
 
 ```c
 while a < 5
