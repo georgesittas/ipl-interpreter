@@ -31,6 +31,7 @@ static void execute_break_stmt(int line, BreakStmt* stmt);
 static void execute_continue_stmt(int line, ContinueStmt* stmt);
 static void execute_new_stmt(int line, NewStmt* stmt);
 static void execute_free_stmt(int line, FreeStmt* stmt);
+static void execute_size_stmt(int line, SizeStmt* stmt);
 static int evaluate_expr(int line, Expr* expr);
 static int evaluate_literal(int line, Literal* expr);
 static int evaluate_var(int line, Var* expr);
@@ -40,7 +41,7 @@ static void assign_to_lvalue(int line, int value, bool is_array, void* lvalue);
 static void runtime_error(char* msg, int line, int status);
 
 // Interpreter state is maintained with the help of the following globals
-static Map symbol_table; // Implements the mapping identifier -> value
+static Map symbol_table; // Implements the mapping identifier -> table entry
 static int nesting = 0;
 
 static int n_args;
@@ -88,6 +89,7 @@ void execute(Vector stmts, int argc, char **argv) {
 			case CONTINUE_STMT: execute_continue_stmt(stmt->line, stmt->stmt); break;
 			case NEW_STMT: execute_new_stmt(stmt->line, stmt->stmt); break;
 			case FREE_STMT: execute_free_stmt(stmt->line, stmt->stmt); break;
+			case SIZE_STMT: execute_size_stmt(stmt->line, stmt->stmt); break;
 			default:
 				fprintf(stderr, "Invalid statement type (this shouldn't be printed)\n");
 				exit(EXIT_FAILURE);
@@ -237,6 +239,15 @@ static void execute_free_stmt(int line, FreeStmt* stmt) {
 
 	// Virtual removal of entry (free(NULL) is a no-op, so we're ok with destroy_value)
 	map_put(symbol_table, stmt->id, NULL);
+}
+
+static void execute_size_stmt(int line, SizeStmt* stmt) {
+	TableEntry* arr_entry = map_get(symbol_table, stmt->id);
+	if (arr_entry == NULL || arr_entry->type != ARRAY) {
+		runtime_error("name does not correspond to an array", line, EBAD_ARRAY);
+	}
+
+	assign_to_lvalue(line, ((int*) arr_entry->value)[0], stmt->is_array, stmt->lvalue);
 }
 
 static int evaluate_expr(int line, Expr* expr) {
