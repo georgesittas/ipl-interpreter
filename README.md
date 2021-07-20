@@ -146,3 +146,4 @@ have been made:
 
 - [ ] Create a test-suite for the interpreter & automate testing.
 - [ ] Add support for a verbose execution mode.
+- [ ] Add support for interactive execution mode (ie. a REPL).
