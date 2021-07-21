@@ -17,6 +17,7 @@ typedef struct table_entry {
 } TableEntry;
 
 // Helper functions used by the interpreter (no reason to expose them)
+static void init_interpreter(int argc, char** argv);
 static TableEntry* create_table_entry(ExprType type, void* value);
 static void execute_read_stmt(int line, ReadStmt* stmt);
 static void execute_assignment_stmt(int line, AssignmentStmt* stmt);
@@ -40,16 +41,27 @@ static int evaluate_binary(int line, Binary* expr);
 static void assign_to_lvalue(int line, int value, bool is_array, void* lvalue);
 static void runtime_error(char* msg, int line, int status);
 
-// Interpreter state is maintained with the help of the following globals
-static Map symbol_table; // Implements the mapping identifier -> table entry
-static int nesting = 0;
+// This is used as a wrapper for the interpreter's state
+static struct interpreter {
+	int n_args;
+	char** args;
+	Map symbol_table;
+	int nesting;
+	int loop_nesting;
+	int jump_n_loops; // Used for break <n> and continue <n>
+	enum { STOP, REPEAT, NORMAL } loop_state;
+} interpreter;
 
-static int n_args;
-static char** args;
+static void init_interpreter(int argc, char** argv) {
+	interpreter.n_args = argc;
+	interpreter.args = argv;
 
-static int loop_nesting = 0;
-static int jump_n_loops = 1; // Used for break <n> and continue <n>
-static enum { STOP, REPEAT, NORMAL } loop_state = NORMAL;
+	interpreter.symbol_table = map_create(NULL, NULL, free, NULL);
+	interpreter.nesting = 0;
+	interpreter.loop_nesting = 0;
+	interpreter.jump_n_loops = 1;
+	interpreter.loop_state = NORMAL;
+}
 
 static TableEntry* create_table_entry(ExprType type, void* value) {
 	TableEntry* new_table_entry = malloc(sizeof(TableEntry));
@@ -62,12 +74,11 @@ static TableEntry* create_table_entry(ExprType type, void* value) {
 }
 
 void execute(Vector stmts, int argc, char **argv) {
+	// This routine is used recursively and we only want init to be called once
 	static bool initialized = false;
 
 	if (!initialized) {
-		n_args = argc;
-		args = argv;
-		symbol_table = map_create(NULL, NULL, free, NULL);
+		init_interpreter(argc, argv);
 		initialized = true;
 	}
 
@@ -95,14 +106,14 @@ void execute(Vector stmts, int argc, char **argv) {
 				exit(EXIT_FAILURE);
 		}
 
-		if (loop_state != NORMAL) {
+		if (interpreter.loop_state != NORMAL) {
 			return; // A break or continue statement was encountered
 		}
 	}
 
-	if (nesting == 0) {
+	if (interpreter.nesting == 0) {
 		// Only destroy the symbol table if we're at the top level & finished
-		map_destroy(symbol_table);
+		map_destroy(interpreter.symbol_table);
 	}
 }
 
@@ -131,45 +142,45 @@ static void execute_writeln_stmt(int line, WritelnStmt* stmt) {
 }
 
 static void execute_while_stmt(int line, WhileStmt* stmt) {
-	nesting++;
-	loop_nesting++;
+	interpreter.nesting++;
+	interpreter.loop_nesting++;
 
 	while (true) {
 		int cond = evaluate_expr(line, stmt->cond);
 		if (cond == 0) break;
 
-		jump_n_loops = 1;
-		loop_state = NORMAL;
-		execute(stmt->stmts, n_args, args);
+		interpreter.jump_n_loops = 1;
+		interpreter.loop_state = NORMAL;
+		execute(stmt->stmts, interpreter.n_args, interpreter.args);
 
-		if (loop_state != NORMAL) {
-			jump_n_loops--;
-			if (loop_state == STOP || jump_n_loops != 0) {
+		if (interpreter.loop_state != NORMAL) {
+			interpreter.jump_n_loops--;
+			if (interpreter.loop_state == STOP || interpreter.jump_n_loops != 0) {
 				break;
 			}
 		}
 	}
 
-	if (jump_n_loops == 0) {
-		jump_n_loops = 1;
-		loop_state = NORMAL;
+	if (interpreter.jump_n_loops == 0) {
+		interpreter.jump_n_loops = 1;
+		interpreter.loop_state = NORMAL;
 	}
 
-	nesting--;
-	loop_nesting--;
+	interpreter.nesting--;
+	interpreter.loop_nesting--;
 }
 
 static void execute_if_else_stmt(int line, IfElseStmt* stmt) {
 	int cond = evaluate_expr(line, stmt->cond);
 
-	nesting++;
+	interpreter.nesting++;
 	if (cond == 1) {
-		execute(stmt->then_stmts, n_args, args);
+		execute(stmt->then_stmts, interpreter.n_args, interpreter.args);
 	} else if (stmt->else_stmts != NULL) {
-		execute(stmt->else_stmts, n_args, args);
+		execute(stmt->else_stmts, interpreter.n_args, interpreter.args);
 	}
 
-	nesting--;
+	interpreter.nesting--;
 }
 
 static void execute_random_stmt(int line, RandomStmt* stmt) {
@@ -178,37 +189,37 @@ static void execute_random_stmt(int line, RandomStmt* stmt) {
 
 static void execute_arg_stmt(int line, ArgStmt* stmt) {
 	int pos = evaluate_expr(line, stmt->expr);
-	if (pos < 1 || pos > n_args-2) {
+	if (pos < 1 || pos > interpreter.n_args-2) {
 		runtime_error("invalid argument index", line, EBAD_IDX);
 	}
 
-	assign_to_lvalue(line, atoi(args[pos+1]), stmt->is_array, stmt->lvalue);
+	assign_to_lvalue(line, atoi(interpreter.args[pos+1]), stmt->is_array, stmt->lvalue);
 }
 
 static void execute_arg_size_stmt(int line, ArgSizeStmt* stmt) {
-	assign_to_lvalue(line, n_args, stmt->is_array, stmt->lvalue);
+	assign_to_lvalue(line, interpreter.n_args, stmt->is_array, stmt->lvalue);
 }
 
 static void execute_break_stmt(int line, BreakStmt* stmt) {
-	if (stmt->n_loops > loop_nesting) {
+	if (stmt->n_loops > interpreter.loop_nesting) {
 		runtime_error("invalid break statement", line, EBAD_BREAK);
 	}
 
-	loop_state = STOP;
-	jump_n_loops = stmt->n_loops;
+	interpreter.loop_state = STOP;
+	interpreter.jump_n_loops = stmt->n_loops;
 }
 
 static void execute_continue_stmt(int line, ContinueStmt* stmt) {
-	if (stmt->n_loops > loop_nesting) {
+	if (stmt->n_loops > interpreter.loop_nesting) {
 		runtime_error("invalid continue statement", line, EBAD_CONT);
 	}
 
-	loop_state = REPEAT;
-	jump_n_loops = stmt->n_loops;
+	interpreter.loop_state = REPEAT;
+	interpreter.jump_n_loops = stmt->n_loops;
 }
 
 static void execute_new_stmt(int line, NewStmt* stmt) {
-	TableEntry* entry = map_get(symbol_table, stmt->id);
+	TableEntry* entry = map_get(interpreter.symbol_table, stmt->id);
 	if (entry != NULL) {
 		if (entry->type == VAR) {
 			runtime_error("array name overlaps with variable name", line, EBAD_ID);
@@ -226,11 +237,11 @@ static void execute_new_stmt(int line, NewStmt* stmt) {
 	assert(arr != NULL);
 
 	arr[0] = size; // E.g. {1,2,3} is represented as {3, 1, 2, 3}
-	map_put(symbol_table, stmt->id, create_table_entry(ARRAY, arr));
+	map_put(interpreter.symbol_table, stmt->id, create_table_entry(ARRAY, arr));
 }
 
 static void execute_free_stmt(int line, FreeStmt* stmt) {
-	TableEntry* entry = map_get(symbol_table, stmt->id);
+	TableEntry* entry = map_get(interpreter.symbol_table, stmt->id);
 	if (entry == NULL || entry->type != ARRAY) {
 		runtime_error("name does not correspond to an array", line, EBAD_ARRAY);
 	}
@@ -238,11 +249,11 @@ static void execute_free_stmt(int line, FreeStmt* stmt) {
 	free(entry->value);
 
 	// Virtual removal of entry (free(NULL) is a no-op, so we're ok with destroy_value)
-	map_put(symbol_table, stmt->id, NULL);
+	map_put(interpreter.symbol_table, stmt->id, NULL);
 }
 
 static void execute_size_stmt(int line, SizeStmt* stmt) {
-	TableEntry* arr_entry = map_get(symbol_table, stmt->id);
+	TableEntry* arr_entry = map_get(interpreter.symbol_table, stmt->id);
 	if (arr_entry == NULL || arr_entry->type != ARRAY) {
 		runtime_error("name does not correspond to an array", line, EBAD_ARRAY);
 	}
@@ -267,12 +278,12 @@ static int evaluate_literal(int line, Literal* expr) {
 }
 
 static int evaluate_var(int line, Var* expr) {
-	TableEntry* entry = map_get(symbol_table, expr->id);
+	TableEntry* entry = map_get(interpreter.symbol_table, expr->id);
 	if (entry == NULL) {
 		// If an unseen variable is used in an expression, it's installed with value = 0
 		expr->value = 0;
 		entry = create_table_entry(VAR, &expr->value);
-		map_put(symbol_table, expr->id, entry);
+		map_put(interpreter.symbol_table, expr->id, entry);
 	} else if (entry->type == ARRAY) {
 		runtime_error("expected a variable name", line, EBAD_VAR);
 	}
@@ -281,7 +292,7 @@ static int evaluate_var(int line, Var* expr) {
 }
 
 static int evaluate_array(int line, Array* expr) {
-	TableEntry* entry = map_get(symbol_table, expr->id);
+	TableEntry* entry = map_get(interpreter.symbol_table, expr->id);
 	if (entry == NULL || entry->type != ARRAY) {
 		runtime_error("name does not correspond to an array", line, EBAD_ARRAY);
 	}
@@ -331,7 +342,7 @@ static void assign_to_lvalue(int line, int value, bool is_array, void* lvalue) {
 	if (is_array) {
 		Array* array = (Array*) lvalue;
 
-		TableEntry* entry = map_get(symbol_table, array->id);
+		TableEntry* entry = map_get(interpreter.symbol_table, array->id);
 		if (entry == NULL || entry->type != ARRAY) {
 			runtime_error("name does not correspond to an array", line, EBAD_ARRAY);
 		}
@@ -345,10 +356,10 @@ static void assign_to_lvalue(int line, int value, bool is_array, void* lvalue) {
 	} else {
 		Var* var = (Var*) lvalue;
 
-		TableEntry* entry = map_get(symbol_table, var->id);
+		TableEntry* entry = map_get(interpreter.symbol_table, var->id);
 		if (entry == NULL) {
 			var->value = value;
-			map_put(symbol_table, var->id, create_table_entry(VAR, &var->value));
+			map_put(interpreter.symbol_table, var->id, create_table_entry(VAR, &var->value));
 		} else if (entry->type == ARRAY) {
 			runtime_error("expected a variable name", line, EBAD_VAR);
 		} else {
