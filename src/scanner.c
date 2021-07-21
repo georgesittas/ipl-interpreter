@@ -27,7 +27,7 @@ static bool is_alnum(int symbol);
 static bool reached_eof(void);
 
 // This is used as a wrapper for the scanner's state
-typedef struct scanner {
+static struct scanner {
 	Vector tokens;
 	FILE* stream;
 	Map keywords;
@@ -37,9 +37,7 @@ typedef struct scanner {
 	int current_indentation;
 	bool computing_indentation;
 	bool currently_at_blank_line;
-} Scanner;
-
-static Scanner scanner;
+} scanner;
 
 static int* create_int(int value) {
 	int* new_int = malloc(sizeof(int));
