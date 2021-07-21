@@ -14,10 +14,7 @@
 #define MAX_LEXEME 100
 
 // Helper functions used by the scanner (no reason to expose them)
-static int* create_int(int value);
-static void install_keywords(void);
-static int identifier_token(char* lexeme);
-static void destroy_token(void* item);
+static void init_scanner(FILE* fp);
 static void scan_token(void);
 static void scan_identifier(void);
 static void scan_number(void);
@@ -29,19 +26,20 @@ static bool is_digit(int symbol);
 static bool is_alnum(int symbol);
 static bool reached_eof(void);
 
-// Scanner state is maintained with the help of the following globals
-static Vector tokens;
+// This is used as a wrapper for the scanner's state
+typedef struct scanner {
+	Vector tokens;
+	FILE* stream;
+	Map keywords;
+	int line;
+	int lexeme_pos;
+	char lexeme[MAX_LEXEME+1];
+	int current_indentation;
+	bool computing_indentation;
+	bool currently_at_blank_line;
+} Scanner;
 
-static FILE* stream;
-static Map keywords; // Implements the mapping keyword -> type
-
-static int line = 1;
-static int lexeme_pos = 0;
-static char lexeme[MAX_LEXEME+1];
-
-static int current_indentation = 0;
-static bool computing_indentation = true;
-static bool currently_at_blank_line = true;
+static Scanner scanner;
 
 static int* create_int(int value) {
 	int* new_int = malloc(sizeof(int));
@@ -50,53 +48,55 @@ static int* create_int(int value) {
 	return new_int;
 }
 
-static void install_keywords(void) {
-	keywords = map_create(NULL, NULL, free, NULL);
-
-	map_put(keywords, "read", create_int(READ));
-	map_put(keywords, "write", create_int(WRITE));
-	map_put(keywords, "writeln", create_int(WRITELN));
-	map_put(keywords, "if", create_int(IF));
-	map_put(keywords, "else", create_int(ELSE));
-	map_put(keywords, "while", create_int(WHILE));
-	map_put(keywords, "random", create_int(RANDOM));
-	map_put(keywords, "argument", create_int(ARGUMENT));
-	map_put(keywords, "size", create_int(SIZE));
-	map_put(keywords, "break", create_int(BREAK));
-	map_put(keywords, "continue", create_int(CONTINUE));
-	map_put(keywords, "new", create_int(NEW));
-	map_put(keywords, "free", create_int(FREE));
-}
-
-static int identifier_token(char* lexeme) {
-	int* keyword_type = map_get(keywords, lexeme);
-	return keyword_type == NULL ? IDENTIFIER : *keyword_type;
-}
-
 static void destroy_token(void* item) {
 	Token* token = (Token*) item;
 	free(token->lexeme);
 	free(token);
 }
 
-Vector scan_tokens(FILE* fp) {
-	stream = fp;
-	tokens = vector_create(destroy_token);
+static void init_scanner(FILE* fp) {
+	scanner.stream = fp;
+	scanner.tokens = vector_create(destroy_token);
 
-	install_keywords();
+	scanner.line = 1;
+	scanner.lexeme_pos = 0;
+	scanner.current_indentation = 0;
+	scanner.computing_indentation = true;
+	scanner.currently_at_blank_line = true;
+
+	scanner.keywords = map_create(NULL, NULL, free, NULL);
+
+	map_put(scanner.keywords, "read", create_int(READ));
+	map_put(scanner.keywords, "write", create_int(WRITE));
+	map_put(scanner.keywords, "writeln", create_int(WRITELN));
+	map_put(scanner.keywords, "if", create_int(IF));
+	map_put(scanner.keywords, "else", create_int(ELSE));
+	map_put(scanner.keywords, "while", create_int(WHILE));
+	map_put(scanner.keywords, "random", create_int(RANDOM));
+	map_put(scanner.keywords, "argument", create_int(ARGUMENT));
+	map_put(scanner.keywords, "size", create_int(SIZE));
+	map_put(scanner.keywords, "break", create_int(BREAK));
+	map_put(scanner.keywords, "continue", create_int(CONTINUE));
+	map_put(scanner.keywords, "new", create_int(NEW));
+	map_put(scanner.keywords, "free", create_int(FREE));
+}
+
+Vector scan_tokens(FILE* fp) {
+	init_scanner(fp);
+
 	while (!reached_eof()) {
-		lexeme_pos = 0;
+		scanner.lexeme_pos = 0;
 		scan_token();
 	}
 
 	add_token(ENDOFFILE, "<EOF>", 0);
 
-	map_destroy(keywords);
-	return tokens;
+	map_destroy(scanner.keywords);
+	return scanner.tokens;
 }
 
 static void scan_token(void) {
-	int symbol = fgetc(stream);
+	int symbol = fgetc(scanner.stream);
 
 	switch (symbol) {
 		case '+': add_token(PLUS, "+", 0); break;
@@ -137,40 +137,40 @@ static void scan_token(void) {
 			break;
 
 		case '\t':
-			if (computing_indentation) {
-				current_indentation++;
+			if (scanner.computing_indentation) {
+				scanner.current_indentation++;
 			}
 			return;
 
 		case '#':
 			// Skip comments completely (falls through to case '\n' on purpose)
-			while (fgetc(stream) != '\n') {
+			while (fgetc(scanner.stream) != '\n') {
 				if (reached_eof()) {
 					return;
 				}
 			}
 
 		case '\n':
-			if (!currently_at_blank_line) {
+			if (!scanner.currently_at_blank_line) {
 				add_token(NEWLINE, "\\n", 0); // No need to add tokens for empty lines
 			}
 
-			line++;
-			current_indentation = 0;
-			computing_indentation = true;
-			currently_at_blank_line = true;
+			scanner.line++;
+			scanner.current_indentation = 0;
+			scanner.computing_indentation = true;
+			scanner.currently_at_blank_line = true;
 			return;
 
 		case ' ':
 			break; // Ignore spaces completely
 
 		default:
-			lexeme[lexeme_pos++] = symbol;
+			scanner.lexeme[scanner.lexeme_pos++] = symbol;
 			if (is_alpha(symbol)) {
-				currently_at_blank_line = false; // Non-blank lines start with an identifier
+				scanner.currently_at_blank_line = false; // Non-blank lines start with an identifier
 
-				if (computing_indentation) {
-					while (current_indentation--) {
+				if (scanner.computing_indentation) {
+					while (scanner.current_indentation--) {
 						add_token(TAB, "\\t", 0); // Add the tabs we counted earlier
 					}
 				}
@@ -179,65 +179,69 @@ static void scan_token(void) {
 			} else if (is_digit(symbol)) {
 				scan_number();
 			} else if (symbol != EOF) {
-				fprintf(stderr, "Lexical Error: unexpected character at line %d - %c\n", line, symbol);
+				fprintf(stderr, "Lexical Error: unexpected character at line %d - %c\n",
+					scanner.line, symbol);
 				exit(EBAD_SYMBOL);
 			}
 			break;
 	}
 
-	computing_indentation = false;
+	scanner.computing_indentation = false;
 }
 
 static void scan_identifier(void) {
 	int symbol;
 
 	while (!reached_eof()) {
-		symbol = fgetc(stream);
+		symbol = fgetc(scanner.stream);
 		if (!is_alnum(symbol)) {
-			ungetc(symbol, stream);
+			ungetc(symbol, scanner.stream);
 			break;
 		}
 
-		lexeme[lexeme_pos++] = symbol;
+		scanner.lexeme[scanner.lexeme_pos++] = symbol;
 	}
 
-	lexeme[lexeme_pos] = '\0';
-	add_token(identifier_token(lexeme), lexeme, 0);
+	scanner.lexeme[scanner.lexeme_pos] = '\0';
+
+	int* keyword_type = map_get(scanner.keywords, scanner.lexeme);
+	add_token(keyword_type == NULL ? IDENTIFIER : *keyword_type, scanner.lexeme, 0);
 }
 
 static void scan_number(void) {
 	int symbol;
 
 	while (!reached_eof()) {
-		symbol = fgetc(stream);
+		symbol = fgetc(scanner.stream);
 		if (!is_digit(symbol)) {
-			ungetc(symbol, stream);
+			ungetc(symbol, scanner.stream);
 			break;
 		}
 
-		lexeme[lexeme_pos++] = symbol;
+		scanner.lexeme[scanner.lexeme_pos++] = symbol;
 	}
 
-	lexeme[lexeme_pos] = '\0';
-	add_token(NUMBER, lexeme, atoi(lexeme));
+	scanner.lexeme[scanner.lexeme_pos] = '\0';
+	add_token(NUMBER, scanner.lexeme, atoi(scanner.lexeme));
 }
 
 static void consume_symbol(int symbol) {
-	int ch = fgetc(stream);
+	int ch = fgetc(scanner.stream);
 
 	if (ch != symbol) {
-		fprintf(stderr, "Lexical Error: unexpected character at line %d - %c\n", line, ch);
+		fprintf(stderr, "Lexical Error: unexpected character at line %d - %c\n",
+			scanner.line, ch);
 		exit(EBAD_SYMBOL);
 	}
 }
 
 static bool match_symbol(int symbol) {
-	int ch = fgetc(stream);
+	int ch = fgetc(scanner.stream);
 
 	if (ch == symbol)
 		return true;
 
-	ungetc(ch, stream);
+	ungetc(ch, scanner.stream);
 	return false;
 }
 
@@ -250,9 +254,9 @@ static void add_token(TokenType type, char* lexeme, int literal) {
 
 	token->type = type;
 	token->literal = literal;
-	token->line = line;
+	token->line = scanner.line;
 
-	vector_add(tokens, token);
+	vector_add(scanner.tokens, token);
 }
 
 static bool is_alpha(int symbol) {
@@ -268,5 +272,5 @@ static bool is_alnum(int symbol) {
 }
 
 static bool reached_eof(void) {
-	return feof(stream);
+	return feof(scanner.stream);
 }
