@@ -165,7 +165,8 @@ static void scan_token(void) {
 		default:
 			scanner.lexeme[scanner.lexeme_pos++] = symbol;
 			if (is_alpha(symbol)) {
-				scanner.currently_at_blank_line = false; // Non-blank lines start with an identifier
+				// Non-blank lines always start with an identifier
+				scanner.currently_at_blank_line = false;
 
 				if (scanner.computing_indentation) {
 					while (scanner.current_indentation--) {
