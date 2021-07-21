@@ -12,6 +12,7 @@
 #include "parser.h"
 
 // Helper functions used by the parser (no reason to expose them)
+static void init_parser(Vector tokens);
 static void parse_stmt(void);
 static void parse_read_stmt(int line);
 static void parse_assignment_stmt(int line);
@@ -43,38 +44,53 @@ static bool is_comp_operator(TokenType type);
 static bool reached_end(void);
 static void syntax_error(char* msg, int line, int status);
 
-// Parser state is maintained with the help of the following globals
-static int curr_token = 0;
-static Vector token_stream;
-static Vector stmts;
+// This is used as a wrapper for the parser's state
+static struct parser {
+	int curr_token;
+	Vector token_stream;
+	Vector stmts;
+	int curr_indent;
+	bool return_from_block;
+} parser;
 
-static int curr_indent = 0;
-static bool return_from_block = false;
+static void init_parser(Vector tokens) {
+	parser.token_stream = tokens;
+
+	parser.curr_token = 0;
+	parser.curr_indent = 0;
+	parser.return_from_block = false;
+}
 
 Vector parse(Vector tokens) {
-	token_stream = tokens;
-	stmts = vector_create(destroy_stmt);
+	// This routine is used recursively and we only want init to be called once
+	static bool initialized = false;
 
-	while (!reached_end() && !return_from_block) {
+	if (!initialized) {
+		init_parser(tokens);
+		initialized = true;
+	}
+
+	parser.stmts = vector_create(destroy_stmt);
+	while (!reached_end() && !parser.return_from_block) {
 		parse_stmt();
 	}
 
-	return stmts;
+	return parser.stmts;
 }
 
 static void parse_stmt(void) {
-	int temp_token_pos = curr_token; // Keep this in case we need to rewind (see below)
+	int temp_token_pos = parser.curr_token; // Keep this in case we need to rewind
 
 	int indent = compute_indentation();
-	if (indent != curr_indent) {
-		if (indent > curr_indent) {
+	if (indent != parser.curr_indent) {
+		if (indent > parser.curr_indent) {
 			syntax_error("invalid indentation", previous_token()->line, EBAD_INDENT);
 		}
 
 		// Rewind the stream index to parse the current statement in the proper context
-		curr_token = temp_token_pos;
+		parser.curr_token = temp_token_pos;
 
-		return_from_block = true;
+		parser.return_from_block = true;
 		return; // End of block
 	}
 
@@ -115,11 +131,11 @@ static void parse_read_stmt(int line) {
 	consume_token(NEWLINE, true);
 
 	ReadStmt* read_stmt = create_read_stmt(lvalue->type == ARRAY, lvalue->expr);
-	vector_add(stmts, create_stmt(line, READ_STMT, read_stmt));
+	vector_add(parser.stmts, create_stmt(line, READ_STMT, read_stmt));
 }
 
 static void parse_assignment_stmt(int line) {
-	curr_token--; // Unread one token so we can begin parsing an lvalue
+	parser.curr_token--; // Unread one token so we can begin parsing an lvalue
 
 	Expr* lvalue = parse_lvalue();
 	consume_token(EQUAL, false);
@@ -135,32 +151,32 @@ static void parse_assignment_stmt(int line) {
 		lvalue->type == ARRAY, lvalue->expr, rhs_expr
 	);
 
-	vector_add(stmts, create_stmt(line, ASSIGNMENT_STMT, assignment_stmt));
+	vector_add(parser.stmts, create_stmt(line, ASSIGNMENT_STMT, assignment_stmt));
 }
 
 static void parse_write_stmt(int line) {
 	if (peek_token()->type == NEWLINE) {
 		consume_token(NEWLINE, true);
-		vector_add(stmts, create_stmt(line, WRITE_STMT, create_write_stmt(NULL)));
+		vector_add(parser.stmts, create_stmt(line, WRITE_STMT, create_write_stmt(NULL)));
 	} else {
 		Expr* write_expr = parse_rvalue();
 		consume_token(NEWLINE, true);
 
 		WriteStmt* write_stmt = create_write_stmt(write_expr);
-		vector_add(stmts, create_stmt(line, WRITE_STMT, write_stmt));
+		vector_add(parser.stmts, create_stmt(line, WRITE_STMT, write_stmt));
 	}
 }
 
 static void parse_writeln_stmt(int line) {
 	if (peek_token()->type == NEWLINE) {
 		consume_token(NEWLINE, true);
-		vector_add(stmts, create_stmt(line, WRITELN_STMT, create_writeln_stmt(NULL)));
+		vector_add(parser.stmts, create_stmt(line, WRITELN_STMT, create_writeln_stmt(NULL)));
 	} else {
 		Expr* writeln_expr = parse_rvalue();
 		consume_token(NEWLINE, true);
 
 		WritelnStmt* writeln_stmt = create_writeln_stmt(writeln_expr);
-		vector_add(stmts, create_stmt(line, WRITELN_STMT, writeln_stmt));
+		vector_add(parser.stmts, create_stmt(line, WRITELN_STMT, writeln_stmt));
 	}
 }
 
@@ -174,7 +190,7 @@ static void parse_while_stmt(int line, int indent) {
 	consume_token(NEWLINE, false);
 
 	WhileStmt* while_stmt = create_while_stmt(cond, parse_block_stmt(line, indent));
-	vector_add(stmts, create_stmt(line, WHILE_STMT, while_stmt));
+	vector_add(parser.stmts, create_stmt(line, WHILE_STMT, while_stmt));
 }
 
 static void parse_if_else_stmt(int line, int indent) {
@@ -189,15 +205,15 @@ static void parse_if_else_stmt(int line, int indent) {
 	Vector then_stmts = parse_block_stmt(line, indent);
 	Vector else_stmts = NULL;
 
-	int temp_curr_token = curr_token;
+	int temp_curr_token = parser.curr_token;
 	int next_indent = compute_indentation();
 
 	if (next_indent != indent) { // Next statement can only match with an outer block
 		// Fix the stream index to read the current statement in the proper context
-		curr_token = temp_curr_token;
+		parser.curr_token = temp_curr_token;
 
 		IfElseStmt* if_else_stmt = create_if_else_stmt(cond, then_stmts, else_stmts);
-		vector_add(stmts, create_stmt(line, IF_ELSE_STMT, if_else_stmt));
+		vector_add(parser.stmts, create_stmt(line, IF_ELSE_STMT, if_else_stmt));
 		return; // End of if statement
 	}
 
@@ -206,28 +222,28 @@ static void parse_if_else_stmt(int line, int indent) {
 		else_stmts = parse_block_stmt(else_line, indent);
 	} else {
 		// Fix the stream index to read the current statement in the proper context
-		curr_token = temp_curr_token;
+		parser.curr_token = temp_curr_token;
 	}
 
 	IfElseStmt* if_else_stmt = create_if_else_stmt(cond, then_stmts, else_stmts);
-	vector_add(stmts, create_stmt(line, IF_ELSE_STMT, if_else_stmt));
+	vector_add(parser.stmts, create_stmt(line, IF_ELSE_STMT, if_else_stmt));
 }
 
 static Vector parse_block_stmt(int line, int indent) {
-	int temp_curr_indent = curr_indent;
-	curr_indent = indent + 1;
+	int temp_curr_indent = parser.curr_indent;
+	parser.curr_indent = indent + 1;
 
 	// We rely on the program's runtime stack to parse a block recursively and
 	// make a new vector containing the statements it contains
 
-	Vector curr_stmts = stmts;
-	Vector block_stmts = parse(token_stream);
+	Vector curr_stmts = parser.stmts;
+	Vector block_stmts = parse(parser.token_stream);
 
 	// Get the state to where it was before parse()
-	stmts = curr_stmts;
-	curr_indent = temp_curr_indent;
+	parser.stmts = curr_stmts;
+	parser.curr_indent = temp_curr_indent;
 
-	return_from_block = false;
+	parser.return_from_block = false;
 
 	if (vector_size(block_stmts) == 0) {
 		syntax_error("empty body statement", line, ENO_BODY);
@@ -240,7 +256,7 @@ static void parse_random_stmt(int line) {
 	consume_token(NEWLINE, true);
 
 	RandomStmt* random_stmt = create_random_stmt(lvalue->type == ARRAY, lvalue->expr);
-	vector_add(stmts, create_stmt(line, RANDOM_STMT, random_stmt));
+	vector_add(parser.stmts, create_stmt(line, RANDOM_STMT, random_stmt));
 }
 
 static void parse_arg_size_stmt(int line) {
@@ -248,7 +264,7 @@ static void parse_arg_size_stmt(int line) {
 	consume_token(NEWLINE, true);
 
 	ArgSizeStmt* arg_size_stmt = create_arg_size_stmt(lvalue->type == ARRAY, lvalue->expr);
-	vector_add(stmts, create_stmt(line, ARG_SIZE_STMT, arg_size_stmt));
+	vector_add(parser.stmts, create_stmt(line, ARG_SIZE_STMT, arg_size_stmt));
 }
 
 static void parse_arg_stmt(int line) {
@@ -257,7 +273,7 @@ static void parse_arg_stmt(int line) {
 	consume_token(NEWLINE, true);
 
 	ArgStmt* arg_stmt = create_arg_stmt(index_expr, lvalue->type == ARRAY, lvalue->expr);
-	vector_add(stmts, create_stmt(line, ARG_STMT, arg_stmt));
+	vector_add(parser.stmts, create_stmt(line, ARG_STMT, arg_stmt));
 }
 
 static void parse_break_stmt(int line) {
@@ -271,7 +287,7 @@ static void parse_break_stmt(int line) {
 	}
 
 	consume_token(NEWLINE, true);
-	vector_add(stmts, create_stmt(line, BREAK_STMT, create_break_stmt(n_loops)));
+	vector_add(parser.stmts, create_stmt(line, BREAK_STMT, create_break_stmt(n_loops)));
 }
 
 static void parse_continue_stmt(int line) {
@@ -285,7 +301,8 @@ static void parse_continue_stmt(int line) {
 	}
 
 	consume_token(NEWLINE, true);
-	vector_add(stmts, create_stmt(line, CONTINUE_STMT, create_continue_stmt(n_loops)));
+	vector_add(parser.stmts, create_stmt(line, CONTINUE_STMT,
+		create_continue_stmt(n_loops)));
 }
 
 static void parse_new_stmt(int line) {
@@ -296,14 +313,15 @@ static void parse_new_stmt(int line) {
 	consume_token(NEWLINE, true);
 
 	NewStmt* new_stmt = create_new_stmt(id_token->lexeme, idx_expr);
-	vector_add(stmts, create_stmt(line, NEW_STMT, new_stmt));
+	vector_add(parser.stmts, create_stmt(line, NEW_STMT, new_stmt));
 }
 
 static void parse_free_stmt(int line) {
 	Token* id_token = consume_token(IDENTIFIER, false);
 	consume_token(NEWLINE, true);
 
-	vector_add(stmts, create_stmt(line, FREE_STMT, create_free_stmt(id_token->lexeme)));
+	vector_add(parser.stmts, create_stmt(line, FREE_STMT,
+		create_free_stmt(id_token->lexeme)));
 }
 
 static void parse_size_stmt(int line) {
@@ -315,7 +333,7 @@ static void parse_size_stmt(int line) {
 		id_token->lexeme, lvalue->type == ARRAY, lvalue->expr
 	);
 
-	vector_add(stmts, create_stmt(line, SIZE_STMT, size_stmt));
+	vector_add(parser.stmts, create_stmt(line, SIZE_STMT, size_stmt));
 }
 
 static Expr* parse_expr(void) {
@@ -364,20 +382,20 @@ static Expr* parse_lvalue(void) {
 }
 
 static Token* advance_token(void) {
-	Token* token = vector_get(token_stream, curr_token);
+	Token* token = vector_get(parser.token_stream, parser.curr_token);
 	if (!reached_end()) {
-		curr_token++;
+		parser.curr_token++;
 	}
 	return token;
 }
 
 static Token* peek_token(void) {
-	return vector_get(token_stream, curr_token);
+	return vector_get(parser.token_stream, parser.curr_token);
 }
 
 static Token* previous_token(void) {
-	assert(curr_token > 0);
-	return vector_get(token_stream, curr_token-1);
+	assert(parser.curr_token > 0);
+	return vector_get(parser.token_stream, parser.curr_token-1);
 }
 
 static Token* consume_token(TokenType type, bool endable) {
@@ -401,7 +419,7 @@ static bool match_token(TokenType type) {
 		return false;
 	} else {
 		if (!reached_end()) {
-			curr_token++;
+			parser.curr_token++;
 		}
 		return true;
 	}
@@ -432,7 +450,8 @@ static bool is_comp_operator(TokenType type) {
 }
 
 static bool reached_end(void) {
-	return ((Token*) vector_get(token_stream, curr_token))->type == ENDOFFILE;
+	Token* curr_tok = vector_get(parser.token_stream, parser.curr_token);
+	return curr_tok->type == ENDOFFILE;
 }
 
 static void syntax_error(char* msg, int line, int status) {
