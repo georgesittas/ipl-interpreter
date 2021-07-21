@@ -179,8 +179,8 @@ static void scan_token(void) {
 			} else if (is_digit(symbol)) {
 				scan_number();
 			} else if (symbol != EOF) {
-				fprintf(stderr, "Lexical Error: unexpected character at line %d - %c\n",
-					scanner.line, symbol);
+				fprintf(stderr, "Lexical Error: unexpected character '%c' at line %d\n",
+					symbol, scanner.line);
 				exit(EBAD_SYMBOL);
 			}
 			break;
@@ -229,8 +229,8 @@ static void consume_symbol(int symbol) {
 	int ch = fgetc(scanner.stream);
 
 	if (ch != symbol) {
-		fprintf(stderr, "Lexical Error: unexpected character at line %d - %c\n",
-			scanner.line, ch);
+		fprintf(stderr, "Lexical Error: unexpected character '%c' at line %d\n",
+			ch, scanner.line);
 		exit(EBAD_SYMBOL);
 	}
 }
