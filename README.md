@@ -139,7 +139,7 @@ The interpreter hasn't been thoroughly tested, so it's very likely that it conta
 if you find an interesting case or even contribute to the project by creating a pull request. The following assumptions
 have been made:
 
-- A command can contain an arbitrary number of whitespace (spaces or tabs) between variables, operators, etc.
+- A command may contain an arbitrary number of whitespace (spaces, tabs) between variables, operators, etc.
 - The indentation of a command is determined by the number of tabs at the beginning of each line.
 
 ## To-Do List
