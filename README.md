@@ -141,9 +141,3 @@ have been made:
 
 - A command may contain an arbitrary number of whitespace (spaces, tabs) between variables, operators, etc.
 - The indentation of a command is determined by the number of tabs at the beginning of each line.
-
-## To-Do List
-
-- Create a test-suite for the interpreter & automate testing.
-- Add support for a verbose execution mode.
-- Add support for interactive execution mode (ie. a REPL).
