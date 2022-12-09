@@ -1,9 +1,8 @@
 # IPL Interpreter
 
-This repo contains an interpreter implementation for [IPL](https://github.com/GeorgeSittas/ipl-interpreter/blob/main/specification.pdf),
-a small imperative language created for educational purposes in the [Introduction to Programming course](http://cgi.di.uoa.gr/~ip/),
-using some of the techniques I learned from the book [Crafting Interpreters](https://craftinginterpreters.com/). The language is briefly
-described as follows:
+[IPL](https://github.com/GeorgeSittas/ipl-interpreter/blob/main/specification.pdf) is a small imperative language created for educational
+purposes in the [Introduction to Programming course](http://cgi.di.uoa.gr/~ip/), using some of the techniques I learned from the (amazing!)
+book [Crafting Interpreters](https://craftinginterpreters.com/). A brief description of the language follows:
 
 ### Types
 
