@@ -1,8 +1,8 @@
 # IPL Interpreter
 
-[IPL](https://github.com/GeorgeSittas/ipl-interpreter/blob/main/specification.pdf) is a simple imperative language created for educational
-purposes in the [Introduction to Programming course](http://cgi.di.uoa.gr/~ip/). This implementation uses some of the techniques described
-in the (amazing!) book [Crafting Interpreters](https://craftinginterpreters.com/). A brief description of the language follows:
+IPL is a simple imperative language created for educational purposes in the [Introduction to Programming course](http://cgi.di.uoa.gr/~ip/). This
+implementation uses some of the techniques described in the (amazing!) book [Crafting Interpreters](https://craftinginterpreters.com/). A brief
+description of the language follows:
 
 ### Types
 
