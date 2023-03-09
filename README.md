@@ -1,66 +1,75 @@
 # IPL Interpreter
 
 IPL is a simple imperative language created for educational purposes in the [Introduction to Programming course](http://cgi.di.uoa.gr/~ip/). This
-implementation uses some of the techniques described in the (amazing!) book [Crafting Interpreters](https://craftinginterpreters.com/). A brief
-description of the language follows:
+implementation uses some of the techniques described in the (amazing!) book [Crafting Interpreters](https://craftinginterpreters.com/).
+
+## Usage
+
+```Bash
+# Compile the project
+make
+
+# Cleanup
+make clean
+```
+
+## IPL Description
 
 ### Types
 
-The language only supports integers, as well as arrays of integers.
+The language only supports integers and arrays of integers.
 
 ### Variables
 
-Since there are only integer variables in IPL, they don't need to be declared before their use, and each uninitialized variable is
-implicitly initialized to 0 on its first use. Additionally, variable names can't consist of more than 100 characters and they must start
-with a letter (upper or lower case), (possibly) followed by a string that contains letters, digits and underscores (in regex terms:
-`Identifier := [a-zA-Z][a-zA-Z0-9_]*`).
+Variables don't need to be declared before their use and they are implicitly initialized to `0` on their first use. Variable names
+can contain at most 100 characters and they must start with a letter, followed by any number of letters, numbers or underscores.
 
 ### Constants
 
-Only non-negative integer constants are allowed in IPL, so for example 6 is a valid constant while -5 is not. Ofcourse, one can produce
-negative values with the help of subtraction (eg. -5 = 0 - 5).
+Only non-negative constants are allowed. Ofcourse, one can produce negative values by subtracting from 0, e.g. `-5 = 0 - 5`.
 
 ### Input
 
-The built-in command `read <lvalue>` is provided for reading integer values into `<lvalue>`, which can be either a variable or
-an array element.
+The built-in command `read <lvalue>` reads an integer value into `<lvalue>`, which can be either a variable or an array element.
 
 ### Output
 
-The built-in commands `write <expr>` and `writeln <expr>` are provided for outputing integer values, where `<expr>` can be either
-a constant, a variable or an array element. The former outputs a trailing space, while the latter a newline. These can also be
-used without an argument, in which case a single space or newline character will be printed.
+The built-in commands `write <expr>` and `writeln <expr>` output the integer value `<expr>`: a constant, variable or array element.
+The former outputs a trailing space, while the latter a newline. In case these are used without an argument, a single space or newline
+character will be printed.
 
 ### Arithmetic Expressions
 
-The language only supports binary arithmetic expressions, where each of the two operands can be either a constant, a variable or an
-element array. The supported operators are: +, -, /, * and %, and they have the same semantics as in C.
+An arithmetic expression can contain at most two operands that can be either constants, variables or array elements.
+The supported operators are `+`, `-`, `/`, `*` and `%`, having the same semantics as in C.
 
 ### Assignment
 
-One can assign an integer value to a variable or to an array element by using the assignment statement, which follows the
-syntax `<lvalue> = <expr>`. Here, `<expr`> can be either a constant, a variable, an array element or an arithmetic expression.
+Integer values can be assigned to a variable or to an array element using the assignment statement: `<lvalue> = <expr>`.
+Here, `<expr`> can be either a constant, a variable, an array element or an arithmetic expression.
 
 ### Conditions
 
 Conditions follow the same format as the arithmetic expressions, but they can only be used in control-flow constructs like
-if-else and while statements (see below). The supported operators are: ==, !=, <=, <, >= and >, and they have the same semantics
-as in C.
+if-else and while statements. The supported operators are `==`, `!=`, `<=`, `<`, `>=` and `>`, having the same semantics as in C.
 
 ### While loop
 
-This is the only statement that can be used for creating loops in IPL, and its syntax is as follows:
+This is the only statement that can be used for creating loops in IPL:
+
 ```c
 while <condition>
 <tab> <statement1>
 <tab> <statement2>
 ....
 ```
-That is, the loop's body is a block of statements that are indented by exactly one more tab to its right.
+
+The language is indentation-sensitive, so tabs define blocks.
 
 ### Branching
 
-Similar to the while loop statement, IPL provides a branching if-else statement, which has similar syntax:
+Similar to the while loop statement, IPL provides an if-else statement (else clause is optional):
+
 ```c
 if <condition>
 <tab> <if_statement1>
@@ -71,31 +80,26 @@ else
 <tab> <else_statement2>
 ....
 ```
-Note here, that the else clause is optional, so one can omit it if he desires.
 
 ### Random Numbers
 
-The built-in command `random <lvalue>` is provided for generating randon integers, which are stored in `<lvalue>`
-(either a variable or an array statement).
+The built-in command `random <lvalue>` generates a random integer and stores it in `<lvalue>`.
 
 ### Comments
 
-A comment in IPL starts with the # character and ends when a newline character is found. Multi-line comments are
-not supported.
+A comment in IPL starts with the # character and ends when a newline character is found.
 
 ### Command Line Arguments
 
-The built-in command `argument size <lvalue>` can be used in order to store the number of arguments passed to an
-IPL program in `<lvalue>` (either a variable or an array element). The input file is not counted as an argument.
-Additionally, one can use the built-in command `argument <expr> <lvalue>` to store an integer argument in `<lvalue>`
-(same as above), where `<expr>` is either a constant, a variable or an array element and represents the argument
-index. If the index is out-of-bounds, a runtime error is raised.
+The built-in command `argument size <lvalue>` stores the number of command line arguments in `<lvalue>`. The input
+file is not counted as an argument. The built-in command `argument <expr> <lvalue>` stores an integer argument in
+`<lvalue>`, where `<expr>` is either a constant, a variable or an array element and represents the argument index.
+If the index is out-of-bounds, a runtime error is raised.
 
 ### Break and Continue
 
-The built-in commands `break <n>` and `continue <n>` have the same semantics as break and continue in C, if `<n> = 1`,
-otherwise they "go up" `<n>` loops, where `<n>` is a positive integer. The following example will probably help to
-understand them better:
+The built-in commands `break <n>` and `continue <n>` have the same semantics as break and continue in C when `<n> = 1`.
+In all other cases, they jump `<n>` loops, where `<n>` is a positive integer. Below is an example:
 
 ```c
 while a < 5
@@ -116,27 +120,14 @@ writeln
 
 ### Arrays
 
-Integer arrays can be created as `new <name>[<expr>]`, where `<name>` is the array's identifier and `<expr>` can be either
-a constant, a variable or an array element (different than zero, in any of these cases), representing the array's
-dimension. Arrays and variables must have different names. All uninitialized array elements are implicitly
-initialized to 0, similar to how variables work. The array's memory can be collected with the free statement, as in
-`free <name>`, where `<name>` is the identifier of the array-to-be-deallocated. An array element reference works just like
-in C: `<name>[<expr>]`, where `<expr>` can be either a constant, a variable or an array element (again, an out-of-bounds
-index will raise a runtime error). Finally, one can use the built-in command `size <name> <lvalue>` to store the size of
-the array referred to by `<name>` in `<lvalue>`, which can be either a variable or an array element.
+Integer arrays can be created as `new <name>[<expr>]`, where `<expr>` is a non zero constant, variable or array
+element representing the new array's dimension. Arrays and variables must have different names. All uninitialized
+array elements are implicitly initialized to 0. The array's memory can be collected with the free statement, using
+`free <name>`. An array element reference works just like in C: `<name>[<expr>]`, where `<expr>` can be either a
+constant, a variable or an array element and an out-of-bounds index raises a runtime error. The built-in command
+`size <name> <lvalue>` stores the size of the array referred to by `<name>` in `<lvalue>`.
 
-## Compilation
+### Whitespace
 
-```Bash
-make       // produces the executable "ipli"
-make clean // clean the directory of object files & executable
-```
-
-## Extra Notes
-
-The interpreter hasn't been thoroughly tested, so it's very likely that it contains bugs. Feel free to create an issue
-if you find an interesting case or even contribute to the project by creating a pull request. The following assumptions
-have been made:
-
-- A command may contain an arbitrary number of spaces/tabs between variables, operators, etc.
-- The indentation of a command is determined by the number of tabs at the beginning of each line.
+A command may contain an arbitrary number of spaces/tabs between variables, operators, etc. Tab characters in
+particular are used to specify indentation for block statements.
