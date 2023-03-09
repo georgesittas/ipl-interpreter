@@ -126,8 +126,3 @@ array elements are implicitly initialized to 0. The array's memory can be collec
 `free <name>`. An array element reference works just like in C: `<name>[<expr>]`, where `<expr>` can be either a
 constant, a variable or an array element and an out-of-bounds index raises a runtime error. The built-in command
 `size <name> <lvalue>` stores the size of the array referred to by `<name>` in `<lvalue>`.
-
-### Whitespace
-
-A command may contain an arbitrary number of spaces/tabs between variables, operators, etc. Tab characters in
-particular are used to specify indentation for block statements.
