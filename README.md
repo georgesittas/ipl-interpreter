@@ -13,7 +13,7 @@ make
 make clean
 ```
 
-## IPL Description
+## Specification
 
 ### Types
 
