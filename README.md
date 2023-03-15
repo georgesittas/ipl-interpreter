@@ -26,7 +26,7 @@ can contain at most 100 characters and they must start with a letter, followed b
 
 ### Constants
 
-Only non-negative constants are allowed. Ofcourse, one can produce negative values by subtracting from 0, e.g. `-5 = 0 - 5`.
+Only non-negative constants are allowed; one can produce negative values by subtracting from 0, e.g. `-5 = 0 - 5`.
 
 ### Input
 
